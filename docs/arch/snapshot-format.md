@@ -54,6 +54,17 @@ by the engine.
 The text makes the PR review meaningful, which is the entire point. Storing only
 the hash would make a description change show up as an unreadable hex delta.
 
+**The two are normalised differently, and that is load-bearing.** `description`
+holds the text as sent, NFC-normalised, with line structure intact so a reviewer
+can read it. `descriptionSha256` covers the *comparison* form: NFC, every run of
+whitespace collapsed to one space, trimmed.
+
+The engine compares the hash, never the stored text. So re-wrapping a paragraph
+changes what a reviewer sees in the pull request and produces no finding, while
+changing a single word produces `MCPC304`. Hashing the stored text instead would
+make every reflow a `behavioural` finding, and `behavioural` findings that mean
+nothing are how a gate loses its audience.
+
 **`digest` covers the canonical form of everything above it.** One-line integrity
 check. It is computed over the serialised bytes of the document with the `digest`
 field itself absent, not over an in-memory object graph.
@@ -71,11 +82,21 @@ and this is verified by a property test.
 - Resolve `$ref` and inline `$defs`.
 - Normalise the three nullability spellings to one representation.
 - Normalise numeric literals (`1` and `1.0` converge).
-- Normalise description text to NFC, collapse whitespace runs, trim.
-- Sort object keys.
-- Preserve the distinction between an empty schema and an absent one.
+- Normalise text to NFC. Collapsing whitespace runs and trimming applies to the
+  comparison form behind `descriptionSha256` only, never to the stored text.
+- Sort object keys, ordinally. Ordering must not depend on the host locale any
+  more than line endings depend on the host OS.
+- Sort tools, resources, and prompts by name, so a server that paginates or
+  reorders its listing does not read as a diff. Arrays whose order is semantic
+  (`enum` values, `anyOf` branches) keep their order; the engine compares those
+  order-insensitively instead.
+- Preserve the distinction between an empty schema and an absent one, and
+  between an absent annotation and a false one.
 
 See `diff-rules.md` §9 for why each of these exists.
+
+Requires globalization to be enabled. Under `InvariantGlobalization` the NFC step
+is a silent no-op rather than an error; see `docs/adr/0006-globalization.md`.
 
 ## 5. Redaction
 

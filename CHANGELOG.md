@@ -23,6 +23,22 @@ Every classification rule change requires a line here, alongside a row in
 - CI: build, test, format check, and a NativeAOT publish matrix across
   linux-x64, win-x64, and osx-arm64 with a binary size budget gate.
 - `SECURITY.md` disclosure policy and Dependabot configuration.
+- `docs/release-checklist.md`, gating a public release on formal trademark
+  clearance among other things.
+
+### Phase 1 (in progress)
+
+- Snapshot model: `Snapshot`, `ServerIdentity`, `ToolDescriptor`,
+  `ToolAnnotations`, `ResourceDescriptor`, `PromptDescriptor`. Annotations are
+  nullable throughout so an absent hint stays distinguishable from a false one.
+- `CanonicalJson`: deterministic serialisation with ordinally sorted keys,
+  two-space indent, LF endings, normalised numeric literals, and a trailing
+  newline.
+- `TextNormaliser`: separate storage and comparison forms, so a reflowed
+  description is visible in a pull request but is not a `behavioural` finding.
+- `SnapshotWriter`: canonicalisation, description hashing, and the `sha256:`
+  content digest, with the ten-consecutive-captures determinism check as a
+  permanent test.
 
 ### Changed
 

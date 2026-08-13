@@ -35,6 +35,16 @@ dotnet_style_readonly_field = true:warning
 dotnet_sort_system_directives_first = true
 csharp_using_directive_placement = outside_namespace:warning
 
+# Naming: constants are PascalCase. Listed first because the first matching rule
+# wins, and the private-field rule below would otherwise claim them.
+dotnet_naming_rule.constants_pascal.symbols = const_fields
+dotnet_naming_rule.constants_pascal.style = pascal
+dotnet_naming_rule.constants_pascal.severity = warning
+dotnet_naming_symbols.const_fields.applicable_kinds = field
+dotnet_naming_symbols.const_fields.applicable_accessibilities = *
+dotnet_naming_symbols.const_fields.required_modifiers = const
+dotnet_naming_style.pascal.capitalization = pascal_case
+
 # Naming: private fields are _camelCase
 dotnet_naming_rule.private_fields_underscored.symbols = private_fields
 dotnet_naming_rule.private_fields_underscored.style = underscore_camel

@@ -97,6 +97,12 @@ with no stable release as stable (ADR-0004). If a plan assumption does not
 survive contact with the toolchain, say so and write an ADR rather than working
 around it quietly.
 
+## Before releasing
+
+`docs/release-checklist.md` has the gates. The first is blocking and easy to
+forget: **formal trademark clearance on the name.** ADR-0005 is an availability
+screen, not legal clearance.
+
 ## Status
 
 Phase 0 complete. Phase 1 (capture and snapshot) is next: HTTP transport with the

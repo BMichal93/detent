@@ -5,7 +5,10 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Must stay false. Under invariant globalization String.Normalize is a
+         silent no-op, which would break the NFC canonicalisation the snapshot
+         format mandates without raising anything. See docs/adr/0006. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
   <PropertyGroup>
