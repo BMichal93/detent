@@ -1,0 +1,17 @@
+# LF everywhere, on every platform, regardless of core.autocrlf.
+#
+# This is not a style preference. The snapshot format mandates LF endings and
+# the golden corpus is compared byte for byte, so a checkout that rewrites line
+# endings would make tests pass on one platform and fail on another.
+* text=auto eol=lf
+
+# Golden corpus and snapshots: never touched, never diffed as anything but text.
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Binary fixtures, if any appear.
+*.png binary
+*.zip binary
+*.dll binary
+*.exe binary

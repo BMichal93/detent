@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Detent.Core is a pure function library: two snapshots in, findings out.
+       No network, no filesystem, no clock, no randomness. This is enforced by
+       ArchitectureTests, not by convention. Do not add a PackageReference here
+       without an ADR and a very good reason. -->
+
+  <PropertyGroup>
+    <RootNamespace>Detent.Core</RootNamespace>
+  </PropertyGroup>
+
+</Project>

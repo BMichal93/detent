@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Detent.Cli</RootNamespace>
+    <AssemblyName>detent</AssemblyName>
+    <PublishAot>true</PublishAot>
+    <StripSymbols>true</StripSymbols>
+    <!-- Size budget is 20 MB per the performance budget in the project plan. -->
+    <TrimMode>full</TrimMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Detent.Core\Detent.Core.csproj" />
+    <ProjectReference Include="..\Detent.Formats\Detent.Formats.csproj" />
+    <ProjectReference Include="..\Detent.Transport\Detent.Transport.csproj" />
+  </ItemGroup>
+
+</Project>

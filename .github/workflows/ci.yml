@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least privilege by default. A job that needs more declares it itself.
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      # Actions are pinned to full commit SHAs, never tags. A tag is mutable and
+      # a mutable dependency in a supply-chain integrity tool is a bad look.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore Detent.slnx
+
+      - name: Verify formatting
+        run: dotnet format Detent.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build Detent.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test Detent.slnx --configuration Release --no-build
+
+  aot:
+    name: NativeAOT publish (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: windows-latest
+            rid: win-x64
+          - os: macos-latest
+            rid: osx-arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Publish
+        run: >
+          dotnet publish src/Detent.Cli/Detent.Cli.csproj
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --output out
+
+      # The binary having been produced is not the same as the binary working.
+      # AOT breakage shows up at runtime, not at publish time.
+      - name: Smoke test
+        shell: bash
+        run: |
+          BIN=out/detent
+          [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          "$BIN" version
+          "$BIN" --help
+
+      # Budget from docs/adr/0002-tech-stack.md. Enforced rather than hoped for.
+      - name: Check binary size budget
+        shell: bash
+        run: |
+          BIN=out/detent
+          [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          BYTES=$(wc -c < "$BIN")
+          LIMIT=$((20 * 1024 * 1024))
+          echo "$BIN is $((BYTES / 1024 / 1024)) MB (budget 20 MB)"
+          if [ "$BYTES" -gt "$LIMIT" ]; then
+            echo "::error::Binary exceeds the 20 MB budget"
+            exit 1
+          fi

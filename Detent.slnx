@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Detent.Cli/Detent.Cli.csproj" />
+    <Project Path="src/Detent.Core/Detent.Core.csproj" />
+    <Project Path="src/Detent.Formats/Detent.Formats.csproj" />
+    <Project Path="src/Detent.Transport/Detent.Transport.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Detent.Core.Tests/Detent.Core.Tests.csproj" />
+    <Project Path="tests/Detent.Transport.Tests/Detent.Transport.Tests.csproj" />
+  </Folder>
+</Solution>
