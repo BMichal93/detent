@@ -14,7 +14,7 @@ good. They are iterable in public. The engine is not.
 | Layer | Approach |
 |---|---|
 | Diff engine | Golden corpus, one case per rule row, plus property-based tests |
-| Mutation testing | Stryker.NET on `Detent.Core.Diff`, gate at 85% |
+| Mutation testing | Stryker.NET on `Detent.Core.Diff`, gate at 85% - **currently blocked, see ADR-0007** |
 | Transport | Fake MCP server (in-process Kestrel) with hostile fixtures |
 | Determinism | Capture the same fixture 10x, assert byte equality |
 | Architecture | Assert `Detent.Core` has no I/O references |

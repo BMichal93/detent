@@ -24,6 +24,7 @@ coverage*.info
 *.coverage
 *.trx
 BenchmarkDotNet.Artifacts/
+StrykerOutput/
 
 ## NuGet
 *.nupkg

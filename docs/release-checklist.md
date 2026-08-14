@@ -46,7 +46,12 @@ Nothing here applies to pre-release builds from `main`.
 ### Correctness
 
 - [ ] Every rule row in `docs/arch/diff-rules.md` has a passing golden case.
-- [ ] Mutation score on the diff engine at or above 85%.
+      MCPC402 is the one open row; see the remarks on `ServerRules`.
+- [ ] Mutation score on the diff engine at or above 85%. **Blocked as of
+      2026-08-14**: Stryker.NET 4.16.0 cannot analyse a .NET 10 project at
+      all (ADR-0007). Re-run `dotnet-stryker` against `Detent.Core` before
+      release; do not ship on the strength of the golden corpus alone if a
+      working mutation run is available by then.
 - [ ] Determinism test green: ten consecutive captures byte-identical.
 - [ ] Performance budgets in ADR-0002 measured on CI hardware, not just locally.
 - [ ] Tested against at least three real public MCP servers.

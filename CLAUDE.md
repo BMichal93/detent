@@ -108,10 +108,19 @@ screen, not legal clearance.
 Phases 0 and 1 complete. `detent capture <url> -o snapshot.json` works and
 produces byte-identical output across ten consecutive runs.
 
-Phase 2 (the diff engine) is next, and it is the one that has to be perfect. Work
-the rule tables test-first: write the golden cases from `docs/arch/diff-rules.md`
-before the implementation, or the engine ends up shaped by whatever the code
-happened to do rather than by the rules anyone chose.
+Phase 2 (the diff engine) is next to last, and it is the one that has to be
+perfect. Work the rule tables test-first: write the golden cases from
+`docs/arch/diff-rules.md` before the implementation, or the engine ends up
+shaped by whatever the code happened to do rather than by the rules anyone
+chose.
+
+46 of 47 rows are implemented. Only MCPC402 (auth scheme or scopes changed)
+remains, blocked on capture surface `Detent.Transport` does not have yet - see
+the remarks on `ServerRules` in `Detent.Core/Diff`.
 
 Phase 2 is done when every rule row has a passing golden case and the mutation
-score on `Detent.Core/Diff` is above 85%.
+score on `Detent.Core/Diff` is above 85%. **The mutation-testing half is
+currently blocked**, not skipped: Stryker.NET 4.16.0, the latest release,
+cannot analyse a .NET 10 project at all (fails before generating a single
+mutant; see ADR-0007). Re-run it against a newer Stryker release before
+treating this criterion as satisfied.

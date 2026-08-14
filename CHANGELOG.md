@@ -144,6 +144,19 @@ Every row in diff-rules.md now has an implementation except MCPC402, which
 remains blocked on capture surface this pass deliberately did not build. 46
 rule rows implemented, 285 tests.
 
+### Investigated
+
+- Whether Stryker.NET's mutation-testing gate (Phase 2's other exit criterion,
+  alongside the golden corpus) is achievable on .NET 10. It is not, as of the
+  latest release: `dotnet-stryker` 4.16.0 fails before generating a single
+  mutant, in every configuration tried, because Buildalyzer's design-time
+  project analysis reports zero referenced projects for a correctly-configured
+  test project - a known upstream issue (stryker-mutator/stryker-net #3367 for
+  .NET 9) that has not resolved one SDK generation later on .NET 10. ADR-0007
+  records the investigation and what would need to be true to unblock it.
+  `CLAUDE.md`, `testing.md`, and `release-checklist.md` now say so explicitly
+  rather than continuing to cite an unverifiable criterion as if it were live.
+
 ### Phase 1
 
 - Snapshot model: `Snapshot`, `ServerIdentity`, `ToolDescriptor`,
