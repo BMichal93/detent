@@ -90,6 +90,28 @@ public sealed class GoldenCorpusTests
     }
 
     /// <summary>
+    /// diff(x, x) is empty, from diff-rules.md §11.
+    /// </summary>
+    /// <remarks>
+    /// Every fixture in the corpus is a free instance of this property, and it
+    /// catches a whole class of bug the per-case expectations cannot: a rule
+    /// that fires on a schema compared against itself is wrong no matter what
+    /// the expectations say.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void Comparing_a_snapshot_with_itself_finds_nothing(string caseName)
+    {
+        var directory = Path.Combine(CorpusRoot, caseName);
+
+        foreach (var file in new[] { "before.json", "after.json" })
+        {
+            var snapshot = ReadSnapshot(directory, file);
+            Assert.Empty(DiffEngine.Diff(snapshot, snapshot));
+        }
+    }
+
+    /// <summary>
     /// An empty corpus would make every theory above pass vacuously, which is
     /// indistinguishable from a corpus that works.
     /// </summary>

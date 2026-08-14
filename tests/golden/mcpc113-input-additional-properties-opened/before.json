@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "server": {
+    "name": "example-mcp",
+    "version": "1.0.0",
+    "protocolRevision": "2026-07-28"
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "t",
+      "description": "A tool.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  ],
+  "resources": [],
+  "prompts": []
+}

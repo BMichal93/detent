@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC103",
+      "severity": "breaking",
+      "path": "tools/t/inputSchema/properties/b"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC117",
+      "severity": "additive",
+      "path": "tools/t/inputSchema/properties/a"
+    }
+  ]
+}

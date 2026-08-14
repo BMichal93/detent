@@ -34,10 +34,20 @@ Every classification rule change requires a line here, alongside a row in
 - `Finding` model and the golden corpus harness. One directory per rule row,
   discovered by a parameterised theory; cases pin rule, class, and location but
   not message wording. Verified to fail on an injected false negative.
-- `DiffEngine`, tool-presence rules only: MCPC301 (tool removed, `breaking`) and
-  MCPC303 (tool added, `additive`). **Not wired to the CLI**: an engine that
-  implements two rules reports no findings for everything else, and shipping
-  that would be the false negative the product exists to prevent.
+- `SchemaNormaliser`: inlines local `$ref` and `$defs`, collapses the three
+  nullability spellings into one, reports recursion and unresolvable references
+  as MCPC901/MCPC903 rather than following or swallowing them, and caps depth.
+  External references are never fetched; `Detent.Core` has no network, so a
+  pointer out of an untrusted snapshot cannot become an SSRF vector.
+- `SchemaRules`: the contravariant and covariant rule tables as data, so the two
+  sides of a tool cannot accidentally share a classification.
+- Input schema rules MCPC101-118, all eighteen rows of diff-rules.md §4, each
+  with a golden case written before the implementation.
+- `DiffEngine` also compares tool presence: MCPC301 (tool removed, `breaking`)
+  and MCPC303 (tool added, `additive`). **Still not wired to the CLI**: output
+  schema, tool-level and server-level rules are unimplemented, so the engine
+  reports no findings for those and shipping it would be the false negative the
+  product exists to prevent.
 
 ### Phase 1
 

@@ -16,7 +16,8 @@ namespace Detent.Core.Diff;
 /// until every row in <c>docs/arch/diff-rules.md</c> has a passing golden case.
 /// </para>
 /// <para>
-/// Implemented: MCPC301, MCPC303.
+/// Implemented: MCPC101-118 (input schemas), MCPC301, MCPC303, and the
+/// MCPC901/903 analysis limits.
 /// </para>
 /// </remarks>
 public static class DiffEngine
@@ -33,9 +34,80 @@ public static class DiffEngine
         var findings = new List<Finding>();
 
         CompareToolPresence(before, after, findings);
+        CompareToolSchemas(before, after, findings);
 
         findings.Sort(Finding.Compare);
         return findings;
+    }
+
+    /// <summary>
+    /// Compares the input schema of every tool present on both sides.
+    /// </summary>
+    /// <remarks>
+    /// Output schemas are not compared yet. They are covariant and need their
+    /// own rule table (MCPC2xx); borrowing the input one would invert half the
+    /// classifications, which is the exact mistake diff-rules.md §1 exists to
+    /// prevent.
+    /// </remarks>
+    private static void CompareToolSchemas(Snapshot before, Snapshot after, List<Finding> findings)
+    {
+        var baseline = before.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
+
+        foreach (var tool in after.Tools)
+        {
+            if (!baseline.TryGetValue(tool.Name, out var previous))
+            {
+                continue;
+            }
+
+            var path = $"tools/{tool.Name}/inputSchema";
+
+            var normalisedBefore = SchemaNormaliser.Normalise(previous.InputSchema);
+            var normalisedAfter = SchemaNormaliser.Normalise(tool.InputSchema);
+
+            ReportIssues(normalisedBefore.Issues, normalisedAfter.Issues, path, findings);
+
+            SchemaComparer.Compare(
+                normalisedBefore.Schema,
+                normalisedAfter.Schema,
+                path,
+                SchemaRules.Input,
+                findings);
+        }
+    }
+
+    /// <summary>
+    /// Surfaces what the normaliser could not analyse, once per place.
+    /// </summary>
+    /// <remarks>
+    /// Deduplicated across the two sides, because a schema that is recursive in
+    /// the baseline is almost always recursive in the candidate too, and saying
+    /// so twice helps nobody. Never dropped entirely: the default posture on
+    /// anything unanalysable is to report it. See diff-rules.md §10.
+    /// </remarks>
+    private static void ReportIssues(
+        IReadOnlyList<SchemaIssue> before,
+        IReadOnlyList<SchemaIssue> after,
+        string path,
+        List<Finding> findings)
+    {
+        var seen = new HashSet<(string, string)>();
+
+        foreach (var issue in before.Concat(after))
+        {
+            if (!seen.Add((issue.Id, issue.Path)))
+            {
+                continue;
+            }
+
+            findings.Add(new Finding
+            {
+                Id = issue.Id,
+                Severity = Severity.Unanalysable,
+                Path = path + issue.Path,
+                Message = issue.Message,
+            });
+        }
     }
 
     /// <summary>
