@@ -100,20 +100,26 @@ public sealed class GoldenCorpusTests
     /// </remarks>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Comparing_a_snapshot_with_itself_finds_nothing_except_mcpc405(string caseName)
+    public void Comparing_a_snapshot_with_itself_finds_nothing_except_state_checks(string caseName)
     {
+        // MCPC405 is explicitly a single-snapshot check, per diff-rules.md §7:
+        // it reports a state ("this capability is deprecated"), not a
+        // transition. MCPC901 and MCPC903 are evaluated the same way even
+        // though diff-rules.md does not call it out for them: ReportIssues in
+        // DiffEngine dedupes an issue found on either side into one finding
+        // rather than asking whether it changed, because a schema that is too
+        // deep or references something missing in the baseline is almost
+        // always the same schema in the candidate, and saying so twice helps
+        // nobody. Anything else surviving a self-comparison is a real bug
+        // regardless of which fixture it came from.
+        string[] stateChecks = ["MCPC405", "MCPC901", "MCPC903"];
+
         var directory = Path.Combine(CorpusRoot, caseName);
 
         foreach (var file in new[] { "before.json", "after.json" })
         {
             var snapshot = ReadSnapshot(directory, file);
-
-            // MCPC405 is explicitly a single-snapshot check, per diff-rules.md
-            // §7: it reports a state ("this capability is deprecated"), not a
-            // transition, so it is the one rule allowed to fire even when
-            // nothing changed. Anything else surviving a self-comparison is a
-            // real bug regardless of which fixture it came from.
-            Assert.All(DiffEngine.Diff(snapshot, snapshot), f => Assert.Equal("MCPC405", f.Id));
+            Assert.All(DiffEngine.Diff(snapshot, snapshot), f => Assert.Contains(f.Id, stateChecks));
         }
     }
 

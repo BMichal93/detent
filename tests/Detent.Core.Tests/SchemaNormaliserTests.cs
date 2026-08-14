@@ -182,6 +182,17 @@ public sealed class SchemaNormaliserTests
         Assert.Contains("$ref", CanonicalJson.SerialiseToString(result.Schema), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The authoritative pin for MCPC901. There is deliberately no golden-corpus
+    /// directory for it: a schema deep enough to trip this cap, embedded in a
+    /// real snapshot document, trips <c>SnapshotReader</c>'s own document-wide
+    /// depth cap first, since that one counts from the document root rather than
+    /// the schema root and is stricter for anything realistic. The two caps
+    /// exist for different reasons (SnapshotReader's is a JSON-parse resource
+    /// limit; this one protects the normaliser's own recursive walk) and this
+    /// test reaches the second by constructing the schema in memory, bypassing
+    /// SnapshotReader entirely - the only way to exercise it at all.
+    /// </summary>
     [Fact]
     public void Nesting_past_the_cap_is_reported_and_does_not_overflow()
     {

@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC903",
+      "severity": "unanalysable",
+      "path": "tools/t/inputSchema/properties/a"
+    }
+  ]
+}

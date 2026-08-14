@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Detent.Core.Capture;
+using Detent.Core.Policy;
 
 namespace Detent.Core.Diff;
 
@@ -40,6 +41,36 @@ internal static class SchemaComparer
         "pattern", "multipleOf", "const",
     ];
 
+    /// <summary>Metadata and presence keywords with their own explicit check.</summary>
+    private static readonly string[] _otherKnownKeywords =
+    [
+        "type", "enum", "default", "description", "uniqueItems", "required",
+    ];
+
+    /// <summary>
+    /// Every keyword this engine has an explicit rule for, structural and
+    /// leaf alike. Anything on a schema object outside this set is unrecognised
+    /// - a vendor extension, or real JSON Schema this engine simply does not
+    /// model yet - and MCPC902 applies to it rather than the engine staying
+    /// silent about it. Built from <see cref="SchemaNormaliser"/>'s own
+    /// keyword lists rather than a second copy of them, so a keyword the
+    /// normaliser learns to handle cannot start being misread as unrecognised
+    /// here through nothing more than the two lists drifting apart.
+    /// </summary>
+    private static readonly HashSet<string> _knownKeywords =
+    [
+        .. SchemaNormaliser.SingleSchemaKeywords,
+        .. SchemaNormaliser.SchemaListKeywords,
+        .. SchemaNormaliser.SchemaMapKeywords,
+        .. _lowerBounds,
+        .. _upperBounds,
+        .. _unorderedConstraints,
+        .. _otherKnownKeywords,
+    ];
+
+    private static readonly Rule _unknownKeywordChanged =
+        new("MCPC902", Severity.Behavioural, "an unrecognised or vendor keyword changed");
+
     public static void Compare(
         JsonObject? before,
         JsonObject? after,
@@ -61,7 +92,44 @@ internal static class SchemaComparer
         CompareDefault(before, after, path, rules, findings);
         CompareDescription(before, after, path, rules, findings);
         CompareUnions(before, after, path, rules, findings);
+        CompareUnknownKeywords(before, after, path, findings);
         CompareProperties(before, after, path, rules, findings);
+    }
+
+    /// <summary>
+    /// MCPC902. Applies identically to input and output schemas - unlike every
+    /// other row in this file, an unrecognised keyword carries no known
+    /// variance, so there is nothing for <see cref="SchemaRules"/> to say about
+    /// which side it is on.
+    /// </summary>
+    /// <remarks>
+    /// Any change at all fires this: appearing, disappearing, or a different
+    /// value. The engine cannot tell whether a keyword it does not model was a
+    /// safe change or a breaking one, and diff-rules.md §10 is explicit that the
+    /// default posture on anything unrecognised is to flag it, never to guess.
+    /// </remarks>
+    private static void CompareUnknownKeywords(
+        JsonObject before,
+        JsonObject after,
+        string path,
+        List<Finding> findings)
+    {
+        var keys = new SortedSet<string>(StringComparer.Ordinal);
+        keys.UnionWith(before.Select(p => p.Key));
+        keys.UnionWith(after.Select(p => p.Key));
+
+        foreach (var key in keys)
+        {
+            if (_knownKeywords.Contains(key))
+            {
+                continue;
+            }
+
+            if (!Same(before[key], after[key]))
+            {
+                findings.Add(Make(_unknownKeywordChanged, path, key));
+            }
+        }
     }
 
     private static void CompareProperties(

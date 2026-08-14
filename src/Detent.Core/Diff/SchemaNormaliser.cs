@@ -23,18 +23,22 @@ public static class SchemaNormaliser
     /// <summary>Deepest nesting expanded before giving up.</summary>
     public const int MaxDepth = 64;
 
-    private static readonly string[] _singleSchemaKeywords =
+    // internal rather than private: SchemaComparer unions these into its
+    // "known keyword" set for MCPC902, so an unrecognised keyword is
+    // determined from one source of truth instead of two lists that could
+    // silently drift apart.
+    internal static readonly string[] SingleSchemaKeywords =
     [
         "items", "additionalItems", "additionalProperties", "unevaluatedItems",
         "unevaluatedProperties", "not", "if", "then", "else", "contains", "propertyNames",
     ];
 
-    private static readonly string[] _schemaListKeywords =
+    internal static readonly string[] SchemaListKeywords =
     [
         "anyOf", "oneOf", "allOf", "prefixItems",
     ];
 
-    private static readonly string[] _schemaMapKeywords =
+    internal static readonly string[] SchemaMapKeywords =
     [
         "properties", "patternProperties", "dependentSchemas",
     ];
@@ -112,12 +116,12 @@ public static class SchemaNormaliser
         int depth,
         List<SchemaIssue> issues)
     {
-        if (_singleSchemaKeywords.Contains(key, StringComparer.Ordinal))
+        if (SingleSchemaKeywords.Contains(key, StringComparer.Ordinal))
         {
             return Visit(value, root, expanding, $"{path}/{key}", depth + 1, issues);
         }
 
-        if (_schemaListKeywords.Contains(key, StringComparer.Ordinal) && value is JsonArray list)
+        if (SchemaListKeywords.Contains(key, StringComparer.Ordinal) && value is JsonArray list)
         {
             var branches = new JsonArray();
             var index = 0;
@@ -133,7 +137,7 @@ public static class SchemaNormaliser
         // Keys here are property names, not keywords, so the map itself is not a
         // schema. Without this, a property legitimately named "$ref" would be
         // read as a reference.
-        if (_schemaMapKeywords.Contains(key, StringComparer.Ordinal) && value is JsonObject map)
+        if (SchemaMapKeywords.Contains(key, StringComparer.Ordinal) && value is JsonObject map)
         {
             var members = new JsonObject();
 

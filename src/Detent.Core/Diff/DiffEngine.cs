@@ -24,7 +24,8 @@ namespace Detent.Core.Diff;
 /// <para>
 /// Implemented: MCPC101-118 (input schemas), MCPC201-209 (output schemas),
 /// MCPC301-310 (tool level), MCPC401, MCPC403-407 (server level), and the
-/// MCPC901/903 analysis limits.
+/// MCPC901-903 analysis limits. MCPC402 is the only row left in the whole
+/// table.
 /// </para>
 /// </remarks>
 public static class DiffEngine

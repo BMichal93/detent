@@ -112,6 +112,37 @@ Every classification rule change requires a line here, alongside a row in
   golden fixtures had an incidental, unrelated server-version bump between
   their before and after files; fixed by aligning the versions, since adding
   MCPC406 surfaced them as accidentally touching a second rule.
+- MCPC902 (unrecognised or vendor keyword changed), the last remaining rule
+  row. Applies identically to input and output schemas - an unmodelled
+  keyword carries no known variance, so it lives directly in `SchemaComparer`
+  rather than in either `SchemaRules` table. `SchemaNormaliser`'s three
+  keyword-category lists moved from `private` to `internal` so `SchemaComparer`
+  can union them into its "known keyword" set from one source of truth,
+  rather than a second hand-maintained list that could quietly drift out of
+  sync with the first.
+- Golden cases backfilled for MCPC902 and MCPC903, per the guardrail that
+  every rule needs one. **MCPC901 (depth cap) does not get one**: a schema
+  deep enough to trip it, once embedded in a real snapshot document, trips
+  `SnapshotReader`'s own document-wide depth cap first, since that limit
+  counts from the document root rather than the schema root and is stricter
+  for anything realistic - confirmed by trying, not assumed. The two caps
+  exist for different reasons and MCPC901 is only reachable by constructing a
+  schema in memory, bypassing `SnapshotReader` entirely, which is exactly what
+  the pre-existing unit test in `SchemaNormaliserTests` already does; that
+  test is now documented as MCPC901's authoritative pin instead of a golden
+  directory nobody could write correctly.
+- The diff(x, x) invariant exception widened from MCPC405 alone to MCPC405,
+  MCPC901, and MCPC903: all three report whether a state holds for one
+  snapshot, evaluated and deduplicated across both sides by `ReportIssues`
+  rather than compared as a transition, so a self-comparison of a schema that
+  is already unanalysable correctly reproduces the same finding rather than
+  none. This was always true of MCPC901/903 by the original design of
+  `ReportIssues`; the golden corpus simply had no fixture exercising either
+  one until now.
+
+Every row in diff-rules.md now has an implementation except MCPC402, which
+remains blocked on capture surface this pass deliberately did not build. 46
+rule rows implemented, 285 tests.
 
 ### Phase 1
 

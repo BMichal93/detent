@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC902",
+      "severity": "behavioural",
+      "path": "tools/t/inputSchema"
+    }
+  ]
+}
