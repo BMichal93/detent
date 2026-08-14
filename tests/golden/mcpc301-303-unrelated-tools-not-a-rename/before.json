@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "server": {
+    "name": "example-mcp",
+    "version": "1.0.0",
+    "protocolRevision": "2026-07-28"
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "legacy_export",
+      "description": "Export the catalogue as CSV.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "resources": [],
+  "prompts": []
+}

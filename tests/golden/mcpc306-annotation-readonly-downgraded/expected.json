@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC306",
+      "severity": "security",
+      "path": "tools/search_products/annotations/readOnlyHint"
+    }
+  ]
+}

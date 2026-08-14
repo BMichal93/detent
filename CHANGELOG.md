@@ -52,11 +52,35 @@ Every classification rule change requires a line here, alongside a row in
   documented no-contract default; promoting it to `breaking` for a consumer
   declaring `exhaustiveEnums` is Phase 3 work applied on top of this finding,
   not something this table decides on its own.
-- `DiffEngine` also compares tool presence: MCPC301 (tool removed, `breaking`)
-  and MCPC303 (tool added, `additive`). **Still not wired to the CLI**:
-  tool-level and server-level rules are unimplemented, so the engine reports no
-  findings for those and shipping it would be the false negative the product
-  exists to prevent.
+- Tool-level rules MCPC301-310, all ten rows of diff-rules.md §6, golden cases
+  written before the implementation. `ToolComparer` handles description, title,
+  and the four safety annotations; the four hints share one transition-checking
+  helper parameterised by which direction is the dangerous one, so a hint
+  losing its assertion entirely (MCPC310) and a hint flipping to the dangerous
+  value (MCPC306/307/309) can never both fire for the same transition, and a
+  hint improving or newly appearing correctly fires nothing, since
+  diff-rules.md has no row for either.
+- `ToolRenameDetector` for MCPC302: matches a removed tool against an added one
+  by Jaccard similarity over input schema paths, output schema paths, and
+  description tokens, averaged over whichever of those three a pair actually
+  has in common, then assigned greedily by descending score so two
+  simultaneous renames cannot cross-pair. Threshold is 0.75, set deliberately
+  high: a missed rename degrades to the ordinary removal/addition pair, but a
+  false one misleads the one part of a report a reviewer reads literally.
+  Threshold and metric are documented as implementation detail, per
+  diff-rules.md §6, so this can be revisited without a rule change.
+- A rename is not a terminal event: the matched pair is also run through
+  `ToolComparer` and both schema tables under its new name, so a tool renamed
+  and downgraded in the same release still surfaces the downgrade instead of
+  the rename hiding it. Pinned by a golden case carrying both MCPC302 and
+  MCPC306 in the same diff, plus a negative case confirming two genuinely
+  unrelated tools stay a removal/addition pair rather than a false rename.
+- `DiffEngine.Diff` restructured around one loop per relationship - matched by
+  name, matched by rename, then the remaining unmatched removals and additions
+  - so a tool is compared exactly once regardless of which of those three
+  buckets it falls into. **Still not wired to the CLI**: server-level rules are
+  the only table left unimplemented, and shipping before they land would be the
+  false negative the product exists to prevent.
 
 ### Phase 1
 

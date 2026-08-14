@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC307",
+      "severity": "security",
+      "path": "tools/search_products/annotations/destructiveHint"
+    }
+  ]
+}

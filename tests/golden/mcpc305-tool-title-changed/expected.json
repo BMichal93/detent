@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC305",
+      "severity": "cosmetic",
+      "path": "tools/search_products/title"
+    }
+  ]
+}

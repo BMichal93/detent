@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "server": {
+    "name": "example-mcp",
+    "version": "1.0.0",
+    "protocolRevision": "2026-07-28"
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "search_products",
+      "description": "Search the product catalogue.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ],
+  "resources": [],
+  "prompts": []
+}

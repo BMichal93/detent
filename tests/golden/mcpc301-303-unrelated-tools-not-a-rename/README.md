@@ -1,0 +1,1 @@
+Pins MCPC301/MCPC303 as the negative case for rename detection: a removed and an added tool with no shared shape or wording must stay as an ordinary pair, not be misread as a rename. Guards the 0.75 similarity threshold from the opposite side.

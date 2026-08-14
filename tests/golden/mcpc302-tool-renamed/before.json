@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "server": {
+    "name": "example-mcp",
+    "version": "1.0.0",
+    "protocolRevision": "2026-07-28"
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "search_catalogue",
+      "description": "Search the product catalogue for a given market.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "number"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          }
+        }
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    }
+  ],
+  "resources": [],
+  "prompts": []
+}

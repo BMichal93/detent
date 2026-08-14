@@ -1,0 +1,14 @@
+{
+  "findings": [
+    {
+      "id": "MCPC301",
+      "severity": "breaking",
+      "path": "tools/legacy_export"
+    },
+    {
+      "id": "MCPC303",
+      "severity": "additive",
+      "path": "tools/send_notification"
+    }
+  ]
+}

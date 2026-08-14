@@ -9,16 +9,17 @@ namespace Detent.Core.Diff;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Incomplete. Not a gate yet.</b> Only the tool-presence rules below are
-/// implemented, so every other kind of change currently produces no finding.
-/// That is a false negative, which <c>docs/arch/testing.md</c> §1 calls the one
-/// failure that destroys this product, and it is why <c>detent diff</c> is not
-/// registered as a CLI command yet. Nothing may expose this engine to a user
-/// until every row in <c>docs/arch/diff-rules.md</c> has a passing golden case.
+/// <b>Incomplete. Not a gate yet.</b> Server-level rules are unimplemented, so
+/// a change to capabilities, auth, or a protocol revision currently produces no
+/// finding. That is a false negative, which <c>docs/arch/testing.md</c> §1
+/// calls the one failure that destroys this product, and it is why
+/// <c>detent diff</c> is not registered as a CLI command yet. Nothing may
+/// expose this engine to a user until every row in
+/// <c>docs/arch/diff-rules.md</c> has a passing golden case.
 /// </para>
 /// <para>
 /// Implemented: MCPC101-118 (input schemas), MCPC201-209 (output schemas),
-/// MCPC301, MCPC303, and the MCPC901/903 analysis limits.
+/// MCPC301-310 (tool level), and the MCPC901/903 analysis limits.
 /// </para>
 /// </remarks>
 public static class DiffEngine
@@ -34,56 +35,91 @@ public static class DiffEngine
 
         var findings = new List<Finding>();
 
-        CompareToolPresence(before, after, findings);
+        var baseline = before.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
+        var candidate = after.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
 
-        CompareToolSchemas(
-            before, after, "inputSchema", t => t.InputSchema, SchemaRules.Input, findings);
+        // Present under the same name on both sides: the ordinary case, and
+        // where almost every finding comes from.
+        foreach (var name in baseline.Keys.Where(candidate.ContainsKey))
+        {
+            CompareMatchedTool(baseline[name], candidate[name], findings);
+        }
 
-        CompareToolSchemas(
-            before, after, "outputSchema", t => t.OutputSchema, SchemaRules.Output, findings);
+        var removed = baseline.Keys.Where(n => !candidate.ContainsKey(n)).Select(n => baseline[n]).ToList();
+        var added = candidate.Keys.Where(n => !baseline.ContainsKey(n)).Select(n => candidate[n]).ToList();
+
+        var renamed = ToolRenameDetector.Match(removed, added);
+        var renamedFrom = renamed.Select(m => m.Removed.Name).ToHashSet(StringComparer.Ordinal);
+        var renamedTo = renamed.Select(m => m.Added.Name).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var (was, now) in renamed)
+        {
+            findings.Add(new Finding
+            {
+                Id = ToolRules.Renamed.Id,
+                Severity = ToolRules.Renamed.Severity,
+                Path = $"tools/{now.Name}",
+                Message = $"Tool '{was.Name}' appears to have been renamed to '{now.Name}'. "
+                    + $"A consumer calling '{was.Name}' will now fail.",
+            });
+
+            // A rename is the same tool going forward under a new name, not a
+            // terminal event. Comparing the pair here is what stops a rename
+            // from being a way to smuggle an annotation downgrade past review.
+            CompareMatchedTool(was, now, findings);
+        }
+
+        foreach (var tool in removed.Where(t => !renamedFrom.Contains(t.Name)))
+        {
+            findings.Add(new Finding
+            {
+                Id = "MCPC301",
+                Severity = Severity.Breaking,
+                Path = $"tools/{tool.Name}",
+                Message = $"Tool '{tool.Name}' was removed. A consumer that calls it will now fail.",
+            });
+        }
+
+        foreach (var tool in added.Where(t => !renamedTo.Contains(t.Name)))
+        {
+            findings.Add(new Finding
+            {
+                Id = "MCPC303",
+                Severity = Severity.Additive,
+                Path = $"tools/{tool.Name}",
+                Message = $"Tool '{tool.Name}' was added.",
+            });
+        }
 
         findings.Sort(Finding.Compare);
         return findings;
     }
 
     /// <summary>
-    /// Compares one schema slot (input or output) of every tool present on both
-    /// sides, against the rule table for that slot.
+    /// Every rule that applies to a tool known to exist on both sides: the
+    /// tool-level rules, and both schema slots under their own variance table.
     /// </summary>
-    /// <remarks>
-    /// The two calls at the call site are what makes the variance argument
-    /// impossible to get backwards by accident: input schemas are compared
-    /// against <see cref="SchemaRules.Input"/> and never anything else, and
-    /// likewise for output. Borrowing one table for both would invert half the
-    /// classifications, which is the exact mistake diff-rules.md §1 exists to
-    /// prevent.
-    /// </remarks>
-    private static void CompareToolSchemas(
-        Snapshot before,
-        Snapshot after,
-        string slot,
-        Func<ToolDescriptor, JsonObject?> selectSchema,
+    private static void CompareMatchedTool(ToolDescriptor before, ToolDescriptor after, List<Finding> findings)
+    {
+        ToolComparer.Compare(before, after, findings);
+
+        CompareSchema(before.InputSchema, after.InputSchema, $"tools/{after.Name}/inputSchema", SchemaRules.Input, findings);
+        CompareSchema(before.OutputSchema, after.OutputSchema, $"tools/{after.Name}/outputSchema", SchemaRules.Output, findings);
+    }
+
+    private static void CompareSchema(
+        JsonObject? before,
+        JsonObject? after,
+        string path,
         SchemaRules rules,
         List<Finding> findings)
     {
-        var baseline = before.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
+        var normalisedBefore = SchemaNormaliser.Normalise(before);
+        var normalisedAfter = SchemaNormaliser.Normalise(after);
 
-        foreach (var tool in after.Tools)
-        {
-            if (!baseline.TryGetValue(tool.Name, out var previous))
-            {
-                continue;
-            }
+        ReportIssues(normalisedBefore.Issues, normalisedAfter.Issues, path, findings);
 
-            var path = $"tools/{tool.Name}/{slot}";
-
-            var normalisedBefore = SchemaNormaliser.Normalise(selectSchema(previous));
-            var normalisedAfter = SchemaNormaliser.Normalise(selectSchema(tool));
-
-            ReportIssues(normalisedBefore.Issues, normalisedAfter.Issues, path, findings);
-
-            SchemaComparer.Compare(normalisedBefore.Schema, normalisedAfter.Schema, path, rules, findings);
-        }
+        SchemaComparer.Compare(normalisedBefore.Schema, normalisedAfter.Schema, path, rules, findings);
     }
 
     /// <summary>
@@ -116,42 +152,6 @@ public static class DiffEngine
                 Severity = Severity.Unanalysable,
                 Path = path + issue.Path,
                 Message = issue.Message,
-            });
-        }
-    }
-
-    /// <summary>
-    /// MCPC301 (tool removed) and MCPC303 (tool added).
-    /// </summary>
-    /// <remarks>
-    /// Rename detection (MCPC302) will later collapse a matched removal and
-    /// addition into one finding. Until it exists, a rename surfaces as the pair,
-    /// which is the conservative reading rather than the tidy one.
-    /// </remarks>
-    private static void CompareToolPresence(Snapshot before, Snapshot after, List<Finding> findings)
-    {
-        var baseline = before.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
-        var candidate = after.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
-
-        foreach (var name in baseline.Keys.Where(n => !candidate.ContainsKey(n)))
-        {
-            findings.Add(new Finding
-            {
-                Id = "MCPC301",
-                Severity = Severity.Breaking,
-                Path = $"tools/{name}",
-                Message = $"Tool '{name}' was removed. A consumer that calls it will now fail.",
-            });
-        }
-
-        foreach (var name in candidate.Keys.Where(n => !baseline.ContainsKey(n)))
-        {
-            findings.Add(new Finding
-            {
-                Id = "MCPC303",
-                Severity = Severity.Additive,
-                Path = $"tools/{name}",
-                Message = $"Tool '{name}' was added.",
             });
         }
     }

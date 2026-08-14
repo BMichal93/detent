@@ -1,0 +1,1 @@
+Pins MCPC302: a removed and an added tool with matching schema and description shape are reported as one rename rather than a removal/addition pair. Also proves the rename is not a terminal event: the pair carries a simultaneous readOnlyHint downgrade (MCPC306), and both findings must appear - a rename must not be a way to smuggle a security regression past review.

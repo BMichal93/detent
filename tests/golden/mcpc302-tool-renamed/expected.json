@@ -1,0 +1,14 @@
+{
+  "findings": [
+    {
+      "id": "MCPC302",
+      "severity": "breaking",
+      "path": "tools/search_products"
+    },
+    {
+      "id": "MCPC306",
+      "severity": "security",
+      "path": "tools/search_products/annotations/readOnlyHint"
+    }
+  ]
+}

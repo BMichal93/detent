@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC309",
+      "severity": "security",
+      "path": "tools/search_products/annotations/openWorldHint"
+    }
+  ]
+}

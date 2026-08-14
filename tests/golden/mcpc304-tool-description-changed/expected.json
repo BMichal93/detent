@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC304",
+      "severity": "behavioural",
+      "path": "tools/search_products/description"
+    }
+  ]
+}

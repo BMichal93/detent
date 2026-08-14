@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC308",
+      "severity": "behavioural",
+      "path": "tools/search_products/annotations/idempotentHint"
+    }
+  ]
+}
