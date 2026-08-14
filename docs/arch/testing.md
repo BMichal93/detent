@@ -39,6 +39,30 @@ progress metric.
 The Phase 2 exit criterion is that every row of every table in `diff-rules.md`
 has a passing golden case.
 
+### What expected.json pins
+
+```json
+{
+  "findings": [
+    { "id": "MCPC301", "severity": "breaking", "path": "tools/legacy_export" }
+  ]
+}
+```
+
+Rule, class, and location. **Message wording is deliberately not pinned.** The
+classification is the contract and must never change silently; the prose is UX
+and is meant to be improved. Pinning wording would make every reworded message a
+failing test, and a suite that fails for cosmetic reasons trains people to edit
+expectations until it goes green, which is the one habit this corpus exists to
+prevent.
+
+`before.json` and `after.json` are hand-written and carry no `digest`. The
+harness reads them without verifying one, because their content is the point.
+
+The harness also asserts that each case is well formed, that the corpus is not
+empty (an empty corpus makes every theory pass vacuously, which looks identical
+to a corpus that works), and that directory names match the rule they claim.
+
 ## 3. The rule that matters most
 
 **Never modify a file under `tests/golden/**/expected.json` to make a test pass.**

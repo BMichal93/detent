@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "id": "MCPC303", "severity": "additive", "path": "tools/compare_prices" }
+  ]
+}

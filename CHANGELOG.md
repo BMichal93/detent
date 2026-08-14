@@ -26,6 +26,19 @@ Every classification rule change requires a line here, alongside a row in
 - `docs/release-checklist.md`, gating a public release on formal trademark
   clearance among other things.
 
+### Phase 2 (in progress)
+
+- `SnapshotReader`: parses canonical bytes under a depth cap, refuses an unknown
+  `schemaVersion` outright rather than parsing part of it, and can verify the
+  content digest separately.
+- `Finding` model and the golden corpus harness. One directory per rule row,
+  discovered by a parameterised theory; cases pin rule, class, and location but
+  not message wording. Verified to fail on an injected false negative.
+- `DiffEngine`, tool-presence rules only: MCPC301 (tool removed, `breaking`) and
+  MCPC303 (tool added, `additive`). **Not wired to the CLI**: an engine that
+  implements two rules reports no findings for everything else, and shipping
+  that would be the false negative the product exists to prevent.
+
 ### Phase 1
 
 - Snapshot model: `Snapshot`, `ServerIdentity`, `ToolDescriptor`,

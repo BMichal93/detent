@@ -1,0 +1,5 @@
+{
+  "findings": [
+    { "id": "MCPC301", "severity": "breaking", "path": "tools/legacy_export" }
+  ]
+}

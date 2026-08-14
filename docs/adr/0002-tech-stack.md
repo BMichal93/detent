@@ -39,7 +39,7 @@ gets measured rather than hoped for.
 | Cold start to first output | < 50 ms | 17 ms median (win-x64) |
 | Capture, 50 tools, localhost | < 300 ms | not yet measured properly |
 | Diff, 200 tools | < 50 ms | not yet |
-| Binary size, linux-x64 | < 20 MB | 7.1 MB (win-x64) |
+| Binary size, linux-x64 | < 20 MB | 7 MB (8 MB osx-arm64) |
 | Peak RSS | < 60 MB | not yet |
 
 Binary size moved 2.9 MB to 7.1 MB when the HTTP and TLS stack arrived with
