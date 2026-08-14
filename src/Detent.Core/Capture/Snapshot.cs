@@ -20,6 +20,20 @@ public sealed record Snapshot
     [JsonPropertyName("server")]
     public required ServerIdentity Server { get; init; }
 
+    /// <summary>
+    /// Free-text guidance the server sent for how an agent should use it.
+    /// </summary>
+    /// <remarks>
+    /// A sibling of <c>capabilities</c> in the <c>initialize</c> result, not
+    /// part of <see cref="ServerIdentity"/>: MCP does not nest it under
+    /// <c>serverInfo</c>, and neither does this model. Server-derived like every
+    /// other description field, so it is stored verbatim and sanitized only at
+    /// the point of rendering; see <c>docs/arch/security-model.md</c>.
+    /// </remarks>
+    [JsonPropertyName("instructions")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Instructions { get; init; }
+
     /// <summary>Capabilities as advertised, stored verbatim.</summary>
     [JsonPropertyName("capabilities")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

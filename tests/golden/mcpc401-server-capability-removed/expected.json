@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC401",
+      "severity": "breaking",
+      "path": "capabilities/resources"
+    }
+  ]
+}

@@ -160,6 +160,29 @@ public sealed class SnapshotWriterTests
         Assert.DoesNotContain("destructiveHint", json, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Storage form is NFC composition only: unlike a description's comparison
+    /// hash, nothing hashes instructions, so line structure must survive
+    /// untouched or the committed file would misrepresent what the server sent.
+    /// </summary>
+    [Fact]
+    public void Instructions_keep_their_line_structure_in_storage_form()
+    {
+        const string withStructure = "Search first.\n\n- Then confirm the market.\n- Then purchase.";
+
+        var snapshot = SnapshotWriter.Canonicalise(Sample(Tool("a")) with { Instructions = withStructure });
+
+        Assert.Equal(withStructure, snapshot.Instructions);
+    }
+
+    [Fact]
+    public void Absent_instructions_stay_absent()
+    {
+        var json = Encoding.UTF8.GetString(SnapshotWriter.Write(Sample(Tool("a"))));
+
+        Assert.DoesNotContain("instructions", json, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Snapshot_contains_no_capture_timestamp()
     {

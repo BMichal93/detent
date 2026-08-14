@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "server": {
+    "name": "orifarm-catalogue-mcp",
+    "version": "1.0.0",
+    "protocolRevision": "2026-07-28"
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "search",
+      "description": "Search.",
+      "inputSchema": {
+        "type": "object"
+      }
+    }
+  ],
+  "resources": [],
+  "prompts": []
+}

@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC404",
+      "severity": "notice",
+      "path": "server/protocolRevision"
+    }
+  ]
+}

@@ -100,6 +100,7 @@ public sealed class StreamableHttpProbe : IMcpProbe, IDisposable
                 Version = ReadString(serverInfo, "version"),
                 ProtocolRevision = ReadString(initialised, "protocolVersion"),
             },
+            Instructions = ReadCappedText(initialised, "instructions"),
             Capabilities = capabilities?.DeepClone().AsObject(),
             Tools = tools,
             Resources = resources,

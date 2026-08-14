@@ -1,0 +1,1 @@
+Pins MCPC405: use of a subsystem deprecated by the 2026-07-28 revision: fires on the candidate alone, not on a transition, so it nags every run until removed rather than only on the run it first appears.

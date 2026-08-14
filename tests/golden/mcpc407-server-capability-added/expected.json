@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC407",
+      "severity": "additive",
+      "path": "capabilities/prompts"
+    }
+  ]
+}

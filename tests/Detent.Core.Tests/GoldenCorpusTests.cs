@@ -100,14 +100,20 @@ public sealed class GoldenCorpusTests
     /// </remarks>
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Comparing_a_snapshot_with_itself_finds_nothing(string caseName)
+    public void Comparing_a_snapshot_with_itself_finds_nothing_except_mcpc405(string caseName)
     {
         var directory = Path.Combine(CorpusRoot, caseName);
 
         foreach (var file in new[] { "before.json", "after.json" })
         {
             var snapshot = ReadSnapshot(directory, file);
-            Assert.Empty(DiffEngine.Diff(snapshot, snapshot));
+
+            // MCPC405 is explicitly a single-snapshot check, per diff-rules.md
+            // §7: it reports a state ("this capability is deprecated"), not a
+            // transition, so it is the one rule allowed to fire even when
+            // nothing changed. Anything else surviving a self-comparison is a
+            // real bug regardless of which fixture it came from.
+            Assert.All(DiffEngine.Diff(snapshot, snapshot), f => Assert.Equal("MCPC405", f.Id));
         }
     }
 

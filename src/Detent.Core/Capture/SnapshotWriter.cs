@@ -42,6 +42,7 @@ public static class SnapshotWriter
         return snapshot with
         {
             Server = snapshot.Server with { Name = TextNormaliser.ForStorage(snapshot.Server.Name) },
+            Instructions = snapshot.Instructions is null ? null : TextNormaliser.ForStorage(snapshot.Instructions),
 
             // Sorted by name so that a server reordering its tool list, or
             // paginating it differently, is not a diff.

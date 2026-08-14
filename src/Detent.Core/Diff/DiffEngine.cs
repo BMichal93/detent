@@ -9,17 +9,22 @@ namespace Detent.Core.Diff;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Incomplete. Not a gate yet.</b> Server-level rules are unimplemented, so
-/// a change to capabilities, auth, or a protocol revision currently produces no
-/// finding. That is a false negative, which <c>docs/arch/testing.md</c> §1
-/// calls the one failure that destroys this product, and it is why
-/// <c>detent diff</c> is not registered as a CLI command yet. Nothing may
-/// expose this engine to a user until every row in
+/// <b>Incomplete. Not a gate yet.</b> MCPC402 (auth scheme or required scopes
+/// changed) has no row: nothing about authentication is ever captured, so
+/// there is no field to compare. Adding it means teaching
+/// <c>Detent.Transport</c> to read <c>WWW-Authenticate</c> or an OAuth
+/// protected-resource metadata document, which is new capture surface with its
+/// own security shape, not a diff-engine task - see the remarks on
+/// <see cref="ServerRules"/>. That is a false negative, which
+/// <c>docs/arch/testing.md</c> §1 calls the one failure that destroys this
+/// product, and it is why <c>detent diff</c> is not registered as a CLI
+/// command yet. Nothing may expose this engine to a user until every row in
 /// <c>docs/arch/diff-rules.md</c> has a passing golden case.
 /// </para>
 /// <para>
 /// Implemented: MCPC101-118 (input schemas), MCPC201-209 (output schemas),
-/// MCPC301-310 (tool level), and the MCPC901/903 analysis limits.
+/// MCPC301-310 (tool level), MCPC401, MCPC403-407 (server level), and the
+/// MCPC901/903 analysis limits.
 /// </para>
 /// </remarks>
 public static class DiffEngine
@@ -34,6 +39,16 @@ public static class DiffEngine
         ArgumentNullException.ThrowIfNull(after);
 
         var findings = new List<Finding>();
+
+        // A protocol revision change is a re-baseline event: everything below
+        // this point compares two snapshots as if the same server merely
+        // changed, which is not a safe assumption across a revision boundary.
+        // See the remarks on ServerComparer.Compare.
+        if (ServerComparer.Compare(before, after, findings))
+        {
+            findings.Sort(Finding.Compare);
+            return findings;
+        }
 
         var baseline = before.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
         var candidate = after.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);

@@ -44,6 +44,26 @@ public sealed class StreamableHttpProbeTests
         Assert.Equal(2, snapshot.Tools.Count);
     }
 
+    [Fact]
+    public async Task Instructions_are_captured_when_the_server_sends_them()
+    {
+        var snapshot = await CaptureAsync(new McpScript
+        {
+            Tools = SampleTools(),
+            Instructions = "Always search before attempting a purchase.",
+        });
+
+        Assert.Equal("Always search before attempting a purchase.", snapshot.Instructions);
+    }
+
+    [Fact]
+    public async Task Instructions_are_absent_when_the_server_does_not_send_them()
+    {
+        var snapshot = await CaptureAsync(new McpScript { Tools = SampleTools() });
+
+        Assert.Null(snapshot.Instructions);
+    }
+
     /// <summary>
     /// Absent and false are different claims, and MCPC310 depends on the
     /// difference surviving the transport.

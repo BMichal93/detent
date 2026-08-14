@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC405",
+      "severity": "notice",
+      "path": "capabilities/logging"
+    }
+  ]
+}

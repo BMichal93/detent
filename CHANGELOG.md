@@ -78,9 +78,40 @@ Every classification rule change requires a line here, alongside a row in
 - `DiffEngine.Diff` restructured around one loop per relationship - matched by
   name, matched by rename, then the remaining unmatched removals and additions
   - so a tool is compared exactly once regardless of which of those three
-  buckets it falls into. **Still not wired to the CLI**: server-level rules are
-  the only table left unimplemented, and shipping before they land would be the
-  false negative the product exists to prevent.
+  buckets it falls into.
+
+### Phase 2 continued: server-level rules
+
+- `Snapshot.Instructions`: the `initialize` result's free-text field, previously
+  never captured. Added as a sibling of `capabilities`, matching the shape of
+  the result itself rather than nesting it under `server`. Stored verbatim like
+  every other server-derived string, normalised for storage and separately for
+  comparison, the same split already used for tool descriptions.
+- Server-level rules MCPC401, MCPC403-407, six of the table's seven rows,
+  golden cases written before the implementation. **MCPC402 (auth scheme or
+  scopes changed) has no row**: nothing about authentication is ever captured
+  anywhere in the pipeline, so there is nothing for a rule to compare. Adding
+  it means teaching `Detent.Transport` to read `WWW-Authenticate` or an OAuth
+  protected-resource metadata document - new capture surface with its own
+  security shape, not a diff-engine task, and out of scope for this pass. This
+  is the last unimplemented row in the whole rule set; `detent diff` stays
+  unregistered until it lands or is explicitly descoped.
+- A protocol revision change (MCPC404) now short-circuits the entire
+  comparison rather than running alongside it: diff-rules.md §7 requires this
+  explicitly ("must suppress the wall of false breaking changes that a
+  revision bump otherwise produces"), because a revision boundary is a
+  re-baseline event, not a compatibility one. Pinned by a golden case that
+  changes the protocol revision, removes a tool, and edits a description in
+  the same fixture, and asserts the result is the MCPC404 notice alone.
+- MCPC405 (deprecated subsystem) is the one rule diff-rules.md documents as
+  firing on a single snapshot rather than a transition, which conflicts with
+  the diff(x, x)-is-empty invariant for any snapshot that legitimately uses a
+  deprecated capability. The invariant test now asserts self-comparison
+  produces nothing **except** MCPC405, rather than being weakened or excluding
+  fixtures - it still fails on any other unexpected finding. Two pre-existing
+  golden fixtures had an incidental, unrelated server-version bump between
+  their before and after files; fixed by aligning the versions, since adding
+  MCPC406 surfaced them as accidentally touching a second rule.
 
 ### Phase 1
 

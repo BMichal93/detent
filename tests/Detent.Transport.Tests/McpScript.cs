@@ -23,6 +23,8 @@ internal sealed class McpScript
 
     public JsonObject Capabilities { get; init; } = new() { ["tools"] = new JsonObject() };
 
+    public string? Instructions { get; init; }
+
     public JsonArray Tools { get; init; } = [];
 
     public JsonArray Resources { get; init; } = [];
@@ -95,16 +97,26 @@ internal sealed class McpScript
         await WriteAsync(context, Success(id, result));
     }
 
-    private JsonObject Initialize() => new()
+    private JsonObject Initialize()
     {
-        ["protocolVersion"] = ProtocolVersion,
-        ["capabilities"] = Capabilities.DeepClone(),
-        ["serverInfo"] = new JsonObject
+        var result = new JsonObject
         {
-            ["name"] = ServerName,
-            ["version"] = ServerVersion,
-        },
-    };
+            ["protocolVersion"] = ProtocolVersion,
+            ["capabilities"] = Capabilities.DeepClone(),
+            ["serverInfo"] = new JsonObject
+            {
+                ["name"] = ServerName,
+                ["version"] = ServerVersion,
+            },
+        };
+
+        if (Instructions is not null)
+        {
+            result["instructions"] = Instructions;
+        }
+
+        return result;
+    }
 
     private JsonObject Page(string collection, JsonArray all, JsonObject request)
     {

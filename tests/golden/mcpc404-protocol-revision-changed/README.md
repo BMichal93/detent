@@ -1,0 +1,1 @@
+Pins MCPC404: a protocol revision change is a re-baseline event: it must suppress every other finding the revision boundary would otherwise manufacture, even though this fixture also removes a tool and edits a description that would each ordinarily produce their own finding.
