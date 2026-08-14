@@ -9,8 +9,8 @@ standard*, and the MCP project is building an official suite for that. `detent`
 asks a different question: **did this server change under me?**
 
 > [!WARNING]
-> Pre-release. Phase 0 of the roadmap below is complete; the capture and diff
-> engines are not built yet. Nothing here is usable as a CI gate today.
+> Pre-release. `capture` works; the diff engine is not built yet, so there is
+> nothing to gate on. Useful today only for producing a snapshot to look at.
 
 ## Why this exists
 
@@ -79,8 +79,8 @@ a broken contract, or people start ignoring the gate.
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Foundation, CI, architecture tests, normative docs | done |
-| 1 | HTTP transport with SSRF and resource guards, `capture` | next |
-| 2 | The diff engine, `diff`, human and JSON output | |
+| 1 | HTTP transport with SSRF and resource guards, `capture` | done |
+| 2 | The diff engine, `diff`, human and JSON output | next |
 | 3 | Consumer contracts, `verify`, `init` | |
 | 4 | NativeAOT release matrix, SARIF, GitHub Action, npm shim | |
 | 5 | Dual protocol revisions, deprecation detection, `explain` | |

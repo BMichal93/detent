@@ -105,8 +105,13 @@ screen, not legal clearance.
 
 ## Status
 
-Phase 0 complete. Phase 1 (capture and snapshot) is next: HTTP transport with the
-guards in `security-model.md`, then canonicalisation, then `detent capture`.
+Phases 0 and 1 complete. `detent capture <url> -o snapshot.json` works and
+produces byte-identical output across ten consecutive runs.
 
-Phase 1 is done when `detent capture <url> -o snapshot.json` produces byte-identical
-output across ten consecutive runs.
+Phase 2 (the diff engine) is next, and it is the one that has to be perfect. Work
+the rule tables test-first: write the golden cases from `docs/arch/diff-rules.md`
+before the implementation, or the engine ends up shaped by whatever the code
+happened to do rather than by the rules anyone chose.
+
+Phase 2 is done when every rule row has a passing golden case and the mutation
+score on `Detent.Core/Diff` is above 85%.

@@ -26,7 +26,7 @@ Every classification rule change requires a line here, alongside a row in
 - `docs/release-checklist.md`, gating a public release on formal trademark
   clearance among other things.
 
-### Phase 1 (in progress)
+### Phase 1
 
 - Snapshot model: `Snapshot`, `ServerIdentity`, `ToolDescriptor`,
   `ToolAnnotations`, `ResourceDescriptor`, `PromptDescriptor`. Annotations are
@@ -39,6 +39,22 @@ Every classification rule change requires a line here, alongside a row in
 - `SnapshotWriter`: canonicalisation, description hashing, and the `sha256:`
   content digest, with the ten-consecutive-captures determinism check as a
   permanent test.
+- `Sanitizer`: strips C0/C1 controls, zero-width characters, bidirectional
+  overrides (Trojan Source), and line/paragraph separators from server text.
+- `AddressGuard`: the SSRF blocklist, including cloud metadata at
+  `169.254.169.254` and every IPv6 form that can carry an IPv4 address inside
+  it - v4-mapped, 6to4, NAT64, and the deprecated v4-compatible `::/96`.
+- `GuardedHttpClient`: address vetting inside the connect callback so there is
+  no window for DNS rebinding, hand-followed redirects capped at 3 and refused
+  across hosts or down to http, a streamed 10 MB body cap, and `--insecure`
+  refused off loopback and refused outright in CI.
+- `StreamableHttpProbe` behind `IMcpProbe`: `initialize` plus one listing call
+  per advertised capability, JSON or SSE, pagination walked to the end under
+  page and item caps, all inside a whole-operation 30 second budget. Capture
+  never calls a tool, so it cannot cause a side effect on the server.
+- `detent capture <url> [-o path] [--allow-host] [--insecure]`, writing bytes
+  directly so the canonical form survives to disk. Exit 3 for transport
+  failure, distinct from a policy failure.
 
 ### Changed
 

@@ -36,11 +36,16 @@ gets measured rather than hoped for.
 
 | Metric | Budget | Measured 2026-08-13 |
 |---|---|---|
-| Cold start to first output | < 50 ms | 14 ms median (win-x64) |
-| Capture, 50 tools, localhost | < 300 ms | not yet |
+| Cold start to first output | < 50 ms | 17 ms median (win-x64) |
+| Capture, 50 tools, localhost | < 300 ms | not yet measured properly |
 | Diff, 200 tools | < 50 ms | not yet |
-| Binary size, linux-x64 | < 20 MB | 2.7 MB (win-x64) |
+| Binary size, linux-x64 | < 20 MB | 7.1 MB (win-x64) |
 | Peak RSS | < 60 MB | not yet |
+
+Binary size moved 2.9 MB to 7.1 MB when the HTTP and TLS stack arrived with
+Phase 1. That is the single largest jump the product will take, and it lands at
+roughly a third of the budget, so the budget holds. Worth re-measuring rather
+than assuming after each phase.
 
 ## Consequences
 

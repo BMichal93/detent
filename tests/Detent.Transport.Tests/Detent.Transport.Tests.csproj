@@ -7,6 +7,13 @@
     <PackageReference Include="coverlet.collector" />
   </ItemGroup>
 
+  <!-- Kestrel, for the in-process fake server docs/arch/testing.md §5 requires.
+       A shared framework rather than a package, so it adds nothing to the
+       product's dependency tree and needs no ADR. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Detent.Transport\Detent.Transport.csproj" />
   </ItemGroup>
