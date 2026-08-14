@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC204",
+      "severity": "additive",
+      "path": "tools/t/outputSchema/properties/price"
+    }
+  ]
+}

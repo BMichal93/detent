@@ -1,0 +1,1 @@
+Pins MCPC208: a value the server might now produce. behavioural is the no-contract default from diff-rules.md §5; promoting this to breaking for a consumer that switches exhaustively is a Phase 3 concern, applied on top of this finding rather than decided here.

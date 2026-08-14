@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC202",
+      "severity": "breaking",
+      "path": "tools/t/outputSchema/properties/price"
+    }
+  ]
+}

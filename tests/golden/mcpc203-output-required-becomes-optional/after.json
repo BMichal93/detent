@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "server": {
+    "name": "example-mcp",
+    "version": "1.0.0",
+    "protocolRevision": "2026-07-28"
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "t",
+      "description": "A tool.",
+      "inputSchema": {
+        "type": "object"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "sku"
+        ]
+      }
+    }
+  ],
+  "resources": [],
+  "prompts": []
+}

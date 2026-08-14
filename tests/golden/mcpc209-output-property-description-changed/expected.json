@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC209",
+      "severity": "behavioural",
+      "path": "tools/t/outputSchema/properties/price"
+    }
+  ]
+}

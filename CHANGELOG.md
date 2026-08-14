@@ -43,11 +43,20 @@ Every classification rule change requires a line here, alongside a row in
   sides of a tool cannot accidentally share a classification.
 - Input schema rules MCPC101-118, all eighteen rows of diff-rules.md §4, each
   with a golden case written before the implementation.
+- Output schema rules MCPC201-209, all nine rows of diff-rules.md §5, golden
+  cases written before the implementation. `SchemaRules` fields the output
+  table has no row for (constraints, `additionalProperties`, `default`, union
+  branches) are typed nullable and `SchemaComparer` skips them, rather than the
+  output table inheriting checks that only make sense for what a server
+  accepts. MCPC208 (enum value added) always classifies `behavioural`, the
+  documented no-contract default; promoting it to `breaking` for a consumer
+  declaring `exhaustiveEnums` is Phase 3 work applied on top of this finding,
+  not something this table decides on its own.
 - `DiffEngine` also compares tool presence: MCPC301 (tool removed, `breaking`)
-  and MCPC303 (tool added, `additive`). **Still not wired to the CLI**: output
-  schema, tool-level and server-level rules are unimplemented, so the engine
-  reports no findings for those and shipping it would be the false negative the
-  product exists to prevent.
+  and MCPC303 (tool added, `additive`). **Still not wired to the CLI**:
+  tool-level and server-level rules are unimplemented, so the engine reports no
+  findings for those and shipping it would be the false negative the product
+  exists to prevent.
 
 ### Phase 1
 

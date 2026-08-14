@@ -186,14 +186,25 @@ internal static class SchemaComparer
         SchemaRules rules,
         List<Finding> findings)
     {
+        // Absent from the output table (§5). Constraints describe what a server
+        // accepts; covariance has nothing to say about that side. Both are
+        // checked and captured into locals rather than read from rules further
+        // down, because narrowing one nullable field does not narrow its
+        // sibling, and does not survive a call into another method at all.
+        if (rules.ConstraintTightened is not { } tightened
+            || rules.ConstraintLoosened is not { } loosened)
+        {
+            return;
+        }
+
         foreach (var keyword in _lowerBounds)
         {
-            CompareBound(before, after, path, keyword, raisingTightens: true, rules, findings);
+            CompareBound(before, after, path, keyword, raisingTightens: true, tightened, loosened, findings);
         }
 
         foreach (var keyword in _upperBounds)
         {
-            CompareBound(before, after, path, keyword, raisingTightens: false, rules, findings);
+            CompareBound(before, after, path, keyword, raisingTightens: false, tightened, loosened, findings);
         }
 
         foreach (var keyword in _unorderedConstraints)
@@ -208,13 +219,10 @@ internal static class SchemaComparer
 
             // No ordering to reason about, so presence is the only signal: a
             // pattern that appears or changes can only reject more.
-            findings.Add(Make(
-                has is null ? rules.ConstraintLoosened : rules.ConstraintTightened,
-                path,
-                keyword));
+            findings.Add(Make(has is null ? loosened : tightened, path, keyword));
         }
 
-        CompareUniqueItems(before, after, path, rules, findings);
+        CompareUniqueItems(before, after, path, tightened, loosened, findings);
     }
 
     private static void CompareBound(
@@ -223,7 +231,8 @@ internal static class SchemaComparer
         string path,
         string keyword,
         bool raisingTightens,
-        SchemaRules rules,
+        Rule tightened,
+        Rule loosened,
         List<Finding> findings)
     {
         var had = Number(before[keyword]);
@@ -238,28 +247,26 @@ internal static class SchemaComparer
         // dropping one loosens, whichever direction the bound runs.
         if (had is null)
         {
-            findings.Add(Make(rules.ConstraintTightened, path, keyword));
+            findings.Add(Make(tightened, path, keyword));
             return;
         }
 
         if (has is null)
         {
-            findings.Add(Make(rules.ConstraintLoosened, path, keyword));
+            findings.Add(Make(loosened, path, keyword));
             return;
         }
 
         var raised = has > had;
-        findings.Add(Make(
-            raised == raisingTightens ? rules.ConstraintTightened : rules.ConstraintLoosened,
-            path,
-            keyword));
+        findings.Add(Make(raised == raisingTightens ? tightened : loosened, path, keyword));
     }
 
     private static void CompareUniqueItems(
         JsonObject before,
         JsonObject after,
         string path,
-        SchemaRules rules,
+        Rule tightened,
+        Rule loosened,
         List<Finding> findings)
     {
         var had = before["uniqueItems"]?.GetValueKind() == JsonValueKind.True;
@@ -270,7 +277,7 @@ internal static class SchemaComparer
             return;
         }
 
-        findings.Add(Make(has ? rules.ConstraintTightened : rules.ConstraintLoosened, path, "uniqueItems"));
+        findings.Add(Make(has ? tightened : loosened, path, "uniqueItems"));
     }
 
     private static void CompareAdditionalProperties(
@@ -280,6 +287,14 @@ internal static class SchemaComparer
         SchemaRules rules,
         List<Finding> findings)
     {
+        // Absent from the output table (§5): a server does not declare which
+        // extra fields it might produce, only what it promises.
+        if (rules.AdditionalPropertiesOpened is not { } opened
+            || rules.AdditionalPropertiesClosed is not { } closed)
+        {
+            return;
+        }
+
         var had = before["additionalProperties"];
         var has = after["additionalProperties"];
 
@@ -296,10 +311,7 @@ internal static class SchemaComparer
             return;
         }
 
-        findings.Add(Make(
-            isOpen ? rules.AdditionalPropertiesOpened : rules.AdditionalPropertiesClosed,
-            path,
-            "additionalProperties"));
+        findings.Add(Make(isOpen ? opened : closed, path, "additionalProperties"));
     }
 
     private static void CompareDefault(
@@ -309,6 +321,13 @@ internal static class SchemaComparer
         SchemaRules rules,
         List<Finding> findings)
     {
+        // Absent from the output table (§5): a default is a value a consumer
+        // may omit from a call, which is an input-side concept only.
+        if (rules.DefaultAdded is not { } added || rules.DefaultChanged is not { } changed)
+        {
+            return;
+        }
+
         var had = before["default"];
         var has = after["default"];
 
@@ -317,7 +336,7 @@ internal static class SchemaComparer
             return;
         }
 
-        findings.Add(Make(had is null ? rules.DefaultAdded : rules.DefaultChanged, path, "default"));
+        findings.Add(Make(had is null ? added : changed, path, "default"));
     }
 
     private static void CompareDescription(
@@ -353,6 +372,14 @@ internal static class SchemaComparer
         SchemaRules rules,
         List<Finding> findings)
     {
+        // Absent from the output table (§5): whether a server might produce one
+        // more shape than before is exactly the type-widened row, MCPC206, and
+        // is already covered there. A separate union row would double-report it.
+        if (rules.UnionBranchAdded is not { } added || rules.UnionBranchRemoved is not { } removed)
+        {
+            return;
+        }
+
         foreach (var keyword in new[] { "anyOf", "oneOf" })
         {
             var had = BranchSet(before[keyword]);
@@ -367,12 +394,12 @@ internal static class SchemaComparer
             // a change. diff-rules.md §9.2.
             if (has.Except(had, StringComparer.Ordinal).Any())
             {
-                findings.Add(Make(rules.UnionBranchAdded, path, keyword));
+                findings.Add(Make(added, path, keyword));
             }
 
             if (had.Except(has, StringComparer.Ordinal).Any())
             {
-                findings.Add(Make(rules.UnionBranchRemoved, path, keyword));
+                findings.Add(Make(removed, path, keyword));
             }
         }
     }

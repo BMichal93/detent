@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Detent.Core.Capture;
 using Detent.Core.Policy;
 
@@ -16,8 +17,8 @@ namespace Detent.Core.Diff;
 /// until every row in <c>docs/arch/diff-rules.md</c> has a passing golden case.
 /// </para>
 /// <para>
-/// Implemented: MCPC101-118 (input schemas), MCPC301, MCPC303, and the
-/// MCPC901/903 analysis limits.
+/// Implemented: MCPC101-118 (input schemas), MCPC201-209 (output schemas),
+/// MCPC301, MCPC303, and the MCPC901/903 analysis limits.
 /// </para>
 /// </remarks>
 public static class DiffEngine
@@ -34,22 +35,36 @@ public static class DiffEngine
         var findings = new List<Finding>();
 
         CompareToolPresence(before, after, findings);
-        CompareToolSchemas(before, after, findings);
+
+        CompareToolSchemas(
+            before, after, "inputSchema", t => t.InputSchema, SchemaRules.Input, findings);
+
+        CompareToolSchemas(
+            before, after, "outputSchema", t => t.OutputSchema, SchemaRules.Output, findings);
 
         findings.Sort(Finding.Compare);
         return findings;
     }
 
     /// <summary>
-    /// Compares the input schema of every tool present on both sides.
+    /// Compares one schema slot (input or output) of every tool present on both
+    /// sides, against the rule table for that slot.
     /// </summary>
     /// <remarks>
-    /// Output schemas are not compared yet. They are covariant and need their
-    /// own rule table (MCPC2xx); borrowing the input one would invert half the
+    /// The two calls at the call site are what makes the variance argument
+    /// impossible to get backwards by accident: input schemas are compared
+    /// against <see cref="SchemaRules.Input"/> and never anything else, and
+    /// likewise for output. Borrowing one table for both would invert half the
     /// classifications, which is the exact mistake diff-rules.md §1 exists to
     /// prevent.
     /// </remarks>
-    private static void CompareToolSchemas(Snapshot before, Snapshot after, List<Finding> findings)
+    private static void CompareToolSchemas(
+        Snapshot before,
+        Snapshot after,
+        string slot,
+        Func<ToolDescriptor, JsonObject?> selectSchema,
+        SchemaRules rules,
+        List<Finding> findings)
     {
         var baseline = before.Tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
 
@@ -60,19 +75,14 @@ public static class DiffEngine
                 continue;
             }
 
-            var path = $"tools/{tool.Name}/inputSchema";
+            var path = $"tools/{tool.Name}/{slot}";
 
-            var normalisedBefore = SchemaNormaliser.Normalise(previous.InputSchema);
-            var normalisedAfter = SchemaNormaliser.Normalise(tool.InputSchema);
+            var normalisedBefore = SchemaNormaliser.Normalise(selectSchema(previous));
+            var normalisedAfter = SchemaNormaliser.Normalise(selectSchema(tool));
 
             ReportIssues(normalisedBefore.Issues, normalisedAfter.Issues, path, findings);
 
-            SchemaComparer.Compare(
-                normalisedBefore.Schema,
-                normalisedAfter.Schema,
-                path,
-                SchemaRules.Input,
-                findings);
+            SchemaComparer.Compare(normalisedBefore.Schema, normalisedAfter.Schema, path, rules, findings);
         }
     }
 

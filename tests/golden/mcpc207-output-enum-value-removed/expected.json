@@ -1,0 +1,9 @@
+{
+  "findings": [
+    {
+      "id": "MCPC207",
+      "severity": "additive",
+      "path": "tools/t/outputSchema/properties/market"
+    }
+  ]
+}
