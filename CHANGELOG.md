@@ -144,6 +144,42 @@ Every row in diff-rules.md now has an implementation except MCPC402, which
 remains blocked on capture surface this pass deliberately did not build. 46
 rule rows implemented, 285 tests.
 
+### Phase 2 shipped: `detent diff`
+
+- `GatePolicy` and `PolicyEvaluator` in `Detent.Core.Policy`: findings in, an
+  exit code and a fail/warn/pass partition out, by set membership only.
+- `Detent.Formats`: `JsonRenderer` (its own DTOs, decoupled from `Finding`'s
+  domain model) and `HumanRenderer`, which sanitizes every server-derived
+  string before it reaches the returned text - verified by breaking the
+  sanitization on purpose and watching four tests catch it.
+- `MCPC402` formally deferred rather than silently missing (ADR-0008):
+  `diff-rules.md`, `SECURITY.md`, and `DiffEngine`'s own remarks all say so.
+  `detent diff` ships without it.
+- `detent diff <baseline> <target> [--format human|json] [--fail-on ...]
+  [--warn-on ...]`. Target is a live URL or another snapshot file,
+  auto-detected. `Detent.Cli.Tests` created (there was none), using
+  `InternalsVisibleTo` scoped to the test project - a command's `Create()` is
+  its only entry point besides `Main`, unlike `Detent.Core`'s types, which are
+  reachable through `DiffEngine.Diff` without it.
+- Caught two real bugs writing that test project. `Uri.TryCreate` parses an
+  absolute Windows path like `C:\snapshots\after.json` as a valid URI with
+  scheme `file`, so the original target-resolution logic would have routed
+  every local file target on Windows into the HTTP transport, always failing
+  with a confusing scheme error; fixed by requiring the scheme be `http` or
+  `https` specifically. And the test harness itself was wrong first: wrapping
+  the `diff` `Command` in a fresh `RootCommand` for in-process invocation
+  requires passing `"diff"` as the first argument, which none of the tests
+  did; fixed by parsing directly against the command.
+- Verified end to end against a live server: captured a baseline, diffed it
+  against the unchanged server (clean, exit 0), then flipped a tool's
+  `readOnlyHint` from `true` to `false` and diffed again - `MCPC306`,
+  correctly classified `security`, exit 1, in both output formats. This is
+  the rug-pull scenario the project exists to catch.
+
+`detent capture` and `detent diff` together are the core v0.1 loop from the
+project plan. Consumer contracts (`verify`, `init`, `.detent/contract.yaml`)
+are Phase 3.
+
 ### Investigated
 
 - Whether Stryker.NET's mutation-testing gate (Phase 2's other exit criterion,

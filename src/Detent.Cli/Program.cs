@@ -11,9 +11,10 @@ internal static class Program
         {
             VersionCommand.Create(),
             CaptureCommand.Create(),
+            DiffCommand.Create(),
 
-            // diff (phase 2), verify and init (phase 3), and explain (phase 5)
-            // are registered here as they land.
+            // verify and init (phase 3), and explain (phase 5) are registered
+            // here as they land.
         };
 
         try

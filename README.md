@@ -9,8 +9,11 @@ standard*, and the MCP project is building an official suite for that. `detent`
 asks a different question: **did this server change under me?**
 
 > [!WARNING]
-> Pre-release. `capture` works; the diff engine is not built yet, so there is
-> nothing to gate on. Useful today only for producing a snapshot to look at.
+> Pre-release, but `capture` and `diff` both work end to end. 46 of 47
+> classification rules are implemented; the one gap
+> ([MCPC402](docs/adr/0008-mcpc402-deferred.md), auth scheme or scopes
+> changed) is documented, not silent. Not yet packaged for distribution -
+> build from source.
 
 ## Why this exists
 
@@ -28,8 +31,13 @@ headline use case and compatibility gating is the entry-level one.
 
 ```bash
 detent capture https://mcp.example.com/mcp -o .detent/snapshot.json   # commit this
-detent diff .detent/snapshot.json https://mcp.example.com/mcp          # gate on this
+detent diff .detent/snapshot.json https://mcp.example.com/mcp          # gate on this, in CI
 ```
+
+`diff`'s target is either a live URL or another snapshot file, so the same
+command compares two committed snapshots or a baseline against production.
+`--format human` (default) or `--format json`; `--fail-on`/`--warn-on` override
+the default policy (`fail_on: breaking,security`).
 
 Two modes:
 
@@ -80,10 +88,14 @@ a broken contract, or people start ignoring the gate.
 |---|---|---|
 | 0 | Foundation, CI, architecture tests, normative docs | done |
 | 1 | HTTP transport with SSRF and resource guards, `capture` | done |
-| 2 | The diff engine, `diff`, human and JSON output | next |
-| 3 | Consumer contracts, `verify`, `init` | |
+| 2 | The diff engine, `diff`, human and JSON output | done* |
+| 3 | Consumer contracts, `verify`, `init` | next |
 | 4 | NativeAOT release matrix, SARIF, GitHub Action, npm shim | |
 | 5 | Dual protocol revisions, deprecation detection, `explain` | |
+
+\* Except MCPC402 (auth scheme or scopes changed), deferred by
+[ADR-0008](docs/adr/0008-mcpc402-deferred.md); mutation testing is blocked on
+upstream .NET 10 support, see [ADR-0007](docs/adr/0007-mutation-testing-blocked.md).
 
 ## Building
 
@@ -95,8 +107,8 @@ dotnet test Detent.slnx
 dotnet publish src/Detent.Cli/Detent.Cli.csproj -c Release -r linux-x64
 ```
 
-Ships as a NativeAOT single binary: no runtime install, 2.7 MB, 14 ms cold start
-on win-x64 against budgets of 20 MB and 50 ms.
+Ships as a NativeAOT single binary: no runtime install, 7.6 MB on win-x64
+against a 20 MB budget.
 
 ## Design notes
 

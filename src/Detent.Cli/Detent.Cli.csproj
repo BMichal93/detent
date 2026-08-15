@@ -20,4 +20,12 @@
     <ProjectReference Include="..\Detent.Transport\Detent.Transport.csproj" />
   </ItemGroup>
 
+  <!-- A command's Create() method is its only entry point besides Main itself,
+       so testing command logic in-process (rather than spawning a real
+       subprocess per test) needs this. Scoped to the test project by name,
+       nothing else gets it. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Detent.Cli.Tests" />
+  </ItemGroup>
+
 </Project>

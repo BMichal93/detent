@@ -6,6 +6,7 @@
     <Project Path="src/Detent.Transport/Detent.Transport.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Detent.Cli.Tests/Detent.Cli.Tests.csproj" />
     <Project Path="tests/Detent.Core.Tests/Detent.Core.Tests.csproj" />
     <Project Path="tests/Detent.Formats.Tests/Detent.Formats.Tests.csproj" />
     <Project Path="tests/Detent.Transport.Tests/Detent.Transport.Tests.csproj" />
