@@ -180,6 +180,68 @@ rule rows implemented, 285 tests.
 project plan. Consumer contracts (`verify`, `init`, `.detent/contract.yaml`)
 are Phase 3.
 
+## Phase 3: consumer contracts (in progress)
+
+### Contract model and scoping
+
+- `Contract`, `ToolRequirement`, `ToolAssumptions`, `ContractPolicy`, and
+  `Suppression` in `Detent.Core.Contracts`: the plain data model behind
+  `.detent/contract.yaml`.
+- `ContractScope.Apply`: narrows an ordinary diff's findings per
+  diff-rules.md §8. A finding on a tool the contract never declares using is
+  dropped entirely; on a declared tool, a finding on an input/output property
+  absent from `sends`/`reads` is dropped. `MCPC208` is the one exception,
+  promoted to `breaking` when the field is listed in `exhaustiveEnums`.
+  Server-level findings and tool-level ones with no single attributable
+  property pass through unfiltered.
+- `ContractScope.CheckAssumptions`: a new rule, `MCPC501` (§12 of
+  diff-rules.md, a new ID range distinct from MCPC1-9xx), checking a
+  contract's `assumes` against the candidate snapshot directly rather than
+  diffing - a tool that never once satisfied an assumed annotation produces
+  nothing to diff, and still has to be caught. Always `security`.
+- `ContractScope.ApplySuppressions`: expiring `ignore` entries. `today` is
+  always an explicit `DateOnly` parameter - `Detent.Core` reads no clock, so
+  the caller decides what "today" means. A `security` finding is never
+  suppressed even under an active entry.
+
+### YamlDotNet tried and dropped: hand-rolled parsing instead
+
+- YamlDotNet's only AOT-safe path, its Roslyn source generator, does not work
+  under the current .NET 10 SDK: it silently produces no generated code
+  rather than erroring, traced to the generator DLL being compiled against
+  `Microsoft.CodeAnalysis 4.4.0` and failing to load under the SDK's actual
+  Roslyn version. Confirmed by comparison against `System.Text.Json`'s
+  generator working correctly in the same project, and by loading the
+  analyzer DLL directly. See [ADR-0009](docs/adr/0009-hand-rolled-yaml.md).
+- Presented as a genuine three-way fork rather than decided alone: hand-roll a
+  parser, switch contracts to JSON, or ship YamlDotNet reflection-based and
+  accept the AOT risk ADR-0004 already rejected once for the CLI framework.
+  Chose to hand-roll.
+- `YamlParser` and `ContractYamlReader` now live in `Detent.Core.Contracts`
+  rather than `Detent.Formats`: a hand-rolled parser needs no package
+  reference, so it fits `Detent.Core`'s zero-dependency rule directly, which
+  is architecturally simpler than the original Formats-based design that
+  YamlDotNet would have required.
+- Supports the subset a contract file actually needs: block mappings and
+  sequences (including sequences of mappings), inline `[a, b, c]` lists,
+  quoted and unquoted scalars, and `#` comments. Deliberately not general
+  YAML - no anchors, aliases, multi-document streams, or block scalars.
+- Writing it surfaced the same class of problem one level down: an early
+  draft of one internal method used `yield return`, and C# compiles an
+  iterator to a state machine that reads `Environment.CurrentManagedThreadId`
+  to decide whether its enumerator can be reused - a compiler-inserted
+  reference to `System.Environment`, not a hand-written one, and enough to
+  fail the architecture test keeping `Detent.Core` off the clock and the
+  filesystem. Rewritten to return a materialised list instead. "No dependency
+  on X" has to hold against what the compiler adds, not only what a human
+  types.
+- 21 tests against the parser and reader, including the full contract example
+  from the project plan, comments, quoted strings, a URL's `://` not being
+  mistaken for the mapping separator, and tabs rejected outright.
+
+367 tests total. `Detent.Core` still has zero package dependencies and no
+clock access, confirmed by the architecture tests rather than assumed.
+
 ### Investigated
 
 - Whether Stryker.NET's mutation-testing gate (Phase 2's other exit criterion,

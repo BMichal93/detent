@@ -23,11 +23,14 @@ supply chain is not the weakest link in a supply-chain integrity tool.
 | JSON | `System.Text.Json` with source generators | AOT-compatible, in-box, zero added supply-chain surface | Newtonsoft (reflection-heavy, AOT-hostile) |
 | MCP client | Hand-rolled thin client | See ADR-0003 | Official `ModelContextProtocol` C# SDK |
 | Schema validation | `JsonSchema.Net` (MIT), probe validation only | The diff walks the tree with our own code | Using a validator as a differ, which is the wrong tool |
-| YAML | `YamlDotNet` (MIT), contract files only | Contracts are hand-written; JSON is worse to hand-write | JSON contracts |
+| YAML | Hand-rolled subset parser, contract files only | See ADR-0009 | `YamlDotNet` |
 | Tests | xUnit plus a golden corpus | Deterministic, reviewable | Auto-updating snapshot libraries (see `docs/arch/testing.md` §3) |
 
 Packages are added at the phase that first needs them, not up front.
-`JsonSchema.Net` and `YamlDotNet` are Phase 3; neither is referenced yet.
+`JsonSchema.Net` is Phase 3 and not referenced yet, pending a concrete need -
+contract `sends`/`reads`/`exhaustiveEnums` are plain string lists, not schema
+validation. `YamlDotNet` was tried and dropped for contract files; see
+ADR-0009.
 
 ### Performance budget
 
