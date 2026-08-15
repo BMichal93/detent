@@ -186,11 +186,21 @@ debt. This rule is the reason a stranger runs the tool once.
 Rules above classify a change in isolation. A loaded consumer contract narrows
 the result, and only ever downward:
 
+- A finding on a tool absent from the contract's `requires.tools` is dropped
+  entirely - every finding about it, not only schema-property ones. A consumer
+  that never declared using a tool has nothing at stake in its removal either.
 - A finding on an input property absent from `sends` is dropped.
 - A finding on an output property absent from `reads` is dropped.
 - `MCPC208` promotes to `breaking` when the field is listed in `exhaustiveEnums`.
 - A violated `assumes` entry (for example a tool the consumer auto-invokes losing
-  `readOnlyHint`) is a finding regardless of schema compatibility.
+  `readOnlyHint`) is a finding regardless of schema compatibility. See §12,
+  `MCPC501`.
+- An `ignore` entry drops findings for that tool while unexpired, except
+  `security` findings, which an `ignore` entry may never drop.
+
+Findings not scoped to a specific tool - capability, instructions, and server
+identity changes - are never narrowed by `requires.tools`: they apply to a
+consumer regardless of which tools it happens to call.
 
 Dropping findings nobody reads is the point of consumer-driven contracts. Alert
 fatigue kills CI gates faster than bugs do. A contract may never promote a
@@ -247,3 +257,27 @@ than by example:
   `diff(a, b)` yields `MCPC102` then `diff(b, a)` yields `MCPC103`.
 - Diff output ordering is stable and independent of input key ordering.
 - No rule inspects wall-clock time, the filesystem, or the network.
+
+## 12. Contract verification rules
+
+A distinct ID range from MCPC1xx-9xx above. Those classify a *change between
+two snapshots*; the row below classifies whether a *single* snapshot satisfies
+a promise a consumer's own code depends on, which a diff between two snapshots
+cannot express - a tool that never once satisfied the assumption produces
+nothing to diff, and still needs to be caught the first time `verify` runs
+against it.
+
+| ID | Change | Class |
+|---|---|---|
+| `MCPC501` | A tool's actual annotation does not match what the contract's `assumes` declares | `security` |
+
+`MCPC501` is evaluated once per assumed hint, against the candidate snapshot
+directly, never against a baseline. A tool absent from the candidate produces
+no `MCPC501`: `MCPC301` already covers that tool's removal, and reporting an
+assumption violated by a tool that no longer exists says nothing a reviewer
+does not already know from the removal finding itself.
+
+Always `security`, regardless of which hint. The contract states a fact the
+consumer's code is unconditionally relying on - "I invoke this without
+confirmation because I believe it is read-only" - and a fact that turns out
+false is a trust problem regardless of which specific annotation it was.

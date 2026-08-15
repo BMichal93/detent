@@ -9,6 +9,10 @@
        implementation detail. See CLAUDE.md. -->
   <ItemGroup Label="Runtime - see docs/adr/0002-tech-stack.md">
     <PackageVersion Include="System.CommandLine" Version="2.0.11" />
+    <!-- Contract files only (Detent.Formats), per ADR-0002. Never referenced
+         from Detent.Core: contracts are parsed at the I/O boundary into the
+         plain data model Core actually consumes. -->
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 
   <ItemGroup Label="Test - see docs/adr/0002-tech-stack.md">
