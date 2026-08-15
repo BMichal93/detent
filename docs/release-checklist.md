@@ -16,6 +16,11 @@ Nothing here applies to pre-release builds from `main`.
       not legal clearance and must not be treated as such.** Before going live,
       commission a professional search in the jurisdictions that matter (at
       minimum US and EU, classes 9 and 42) and get an opinion in writing.
+      **Specifically flag `detentapp.com` to whoever runs the search** - a
+      live, differently-scoped software product already trading under
+      "Detent," found on a 2026-08-15 re-screen (see ADR-0005's addendum).
+      No registration was found for it, but common-law use is exactly what a
+      web search screen cannot reliably clear on its own.
 
       This is deliberately the first item on the list. A rename after traction is
       expensive and the cost rises with every user, every install script, and

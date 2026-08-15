@@ -15,6 +15,10 @@ asks a different question: **did this server change under me?**
 > changed) is documented, not silent. Not yet packaged for distribution -
 > build from source.
 
+`detent` is the successor to `mcplock`, carrying the snapshot idea forward into
+a NativeAOT .NET tool with contract testing added on top. `mcplock` is
+archived; there is no active sibling project to keep in sync with.
+
 ## Why this exists
 
 A tool that was read-only when you approved it and is destructive today is not a

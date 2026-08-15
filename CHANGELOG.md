@@ -288,6 +288,23 @@ clock access, confirmed by the architecture tests rather than assumed.
 
 394 tests total, all green, CI passing on NativeAOT for all three platforms.
 
+### Decided: `mcplock` relationship, and a trademark re-screen
+
+- `detent` is the successor to `mcplock` (project plan §2, Option A):
+  archived, not an active sibling. Stated in the README, per the plan's own
+  instruction to write this down on day one; ADR-0005 records the reasoning.
+- Re-screened the name on request, deeper than the original 2026-08-13 pass.
+  Found `detentapp.com`, a live source-available trading-discipline tool
+  already trading under "Detent" - a real software product with the
+  identical name, not a same-word collision in an unrelated field like the
+  originally-rejected candidates. No trademark registration found for it.
+  Not treated as disqualifying - no registration to be blocked by, and
+  consumer confusion (the actual legal standard) is unlikely between a
+  personal trading-risk tool and a developer CI gate - but it is exactly the
+  kind of common-law-use fact a web screen cannot reliably clear and a
+  professional search needs to weigh. `docs/release-checklist.md` now names
+  it specifically for whoever runs that search. See ADR-0005's addendum.
+
 ### Investigated
 
 - Whether Stryker.NET's mutation-testing gate (Phase 2's other exit criterion,
