@@ -59,6 +59,14 @@ Out of scope:
   been passed deliberately. These flags exist to lower specific defences and say
   so.
 - Missing hardening with no demonstrated impact.
+- **An auth scheme or required-scope change on the target server going
+  undetected.** `detent` does not currently capture anything about
+  authentication - no `WWW-Authenticate` header, no OAuth protected-resource
+  metadata - so `diff` cannot compare it. This is a known, deliberate gap
+  (MCPC402, deferred by [ADR-0008](docs/adr/0008-mcpc402-deferred.md)), not an
+  oversight, and not a place to file a report. Everything else in the rug-pull
+  attack class described above - annotation downgrades, description mutations,
+  a new tool appearing - is fully covered.
 
 The full threat model and the control for each entry above is in
 [`docs/arch/security-model.md`](docs/arch/security-model.md).

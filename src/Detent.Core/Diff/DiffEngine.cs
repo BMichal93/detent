@@ -9,17 +9,16 @@ namespace Detent.Core.Diff;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Incomplete. Not a gate yet.</b> MCPC402 (auth scheme or required scopes
-/// changed) has no row: nothing about authentication is ever captured, so
-/// there is no field to compare. Adding it means teaching
-/// <c>Detent.Transport</c> to read <c>WWW-Authenticate</c> or an OAuth
-/// protected-resource metadata document, which is new capture surface with its
-/// own security shape, not a diff-engine task - see the remarks on
-/// <see cref="ServerRules"/>. That is a false negative, which
-/// <c>docs/arch/testing.md</c> §1 calls the one failure that destroys this
-/// product, and it is why <c>detent diff</c> is not registered as a CLI
-/// command yet. Nothing may expose this engine to a user until every row in
-/// <c>docs/arch/diff-rules.md</c> has a passing golden case.
+/// <b>MCPC402 (auth scheme or required scopes changed) has no row and is
+/// deliberately excluded from that guarantee, per ADR-0008.</b> Nothing about
+/// authentication is ever captured, so there is no field to compare; closing
+/// it means new capture surface in <c>Detent.Transport</c> with its own threat
+/// model, not a diff-engine task - see the remarks on <see cref="ServerRules"/>.
+/// This is the one named exception to the rule that nothing may expose this
+/// engine to a user until every row in <c>docs/arch/diff-rules.md</c> has a
+/// passing golden case: <c>detent diff</c> is registered, and
+/// <c>SECURITY.md</c> states the gap explicitly rather than the engine
+/// claiming coverage it does not have.
 /// </para>
 /// <para>
 /// Implemented: MCPC101-118 (input schemas), MCPC201-209 (output schemas),

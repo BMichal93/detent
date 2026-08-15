@@ -157,12 +157,20 @@ between one finding and two is not, and is pinned by golden cases.
 | ID | Change | Class |
 |---|---|---|
 | `MCPC401` | Advertised capability removed | `breaking` |
-| `MCPC402` | Auth scheme or required scopes changed | `security` |
+| `MCPC402` | Auth scheme or required scopes changed | `security` - **deferred, see below** |
 | `MCPC403` | Server `instructions` changed | `behavioural` |
 | `MCPC404` | Protocol revision changed | `notice`, plus a re-baseline prompt |
 | `MCPC405` | Deprecated subsystem in use (`roots`, `sampling`, `logging`) | `notice`, with the published earliest-removal date |
 | `MCPC406` | Server identity changed (name or version) | `notice` |
 | `MCPC407` | Advertised capability added | `additive` |
+
+**`MCPC402` is deferred and unimplemented as of ADR-0008.** Nothing about
+authentication is captured anywhere in the pipeline, so there is no field to
+compare; closing it means new capture surface in `Detent.Transport` with its
+own threat model, not a diff-engine change. `detent diff` ships without it
+rather than waiting indefinitely - see the ADR for why that is the safer
+choice, not merely the expedient one, and `SECURITY.md` for the resulting
+scope statement.
 
 `MCPC404` must suppress the wall of false breaking changes that a revision bump
 otherwise produces. A protocol revision change is a re-baseline event, not a
