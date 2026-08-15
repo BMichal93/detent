@@ -39,6 +39,21 @@ command compares two committed snapshots or a baseline against production.
 `--format human` (default) or `--format json`; `--fail-on`/`--warn-on` override
 the default policy (`fail_on: breaking,security`).
 
+`detent verify` is `diff` scoped to what a specific consumer actually uses:
+
+```bash
+detent verify .detent/snapshot.json https://mcp.example.com/mcp --contract contract.yaml
+```
+
+A finding on a tool or property the contract does not declare using is
+dropped - a removed field nobody reads should not fail your build. A tool's
+`assumes` block (for example `readOnlyHint: true`) is checked against the
+live target directly, independent of any diff, so a tool that never satisfied
+the assumption is still caught on the first run. See
+[`docs/arch/diff-rules.md`](docs/arch/diff-rules.md) §8 and §12 for the exact
+rules, and ADR-0009 for why contract files are YAML parsed by a small
+hand-rolled reader rather than a library.
+
 Two modes:
 
 1. **Snapshot** - did my own server's contract change since last commit? A
@@ -89,7 +104,7 @@ a broken contract, or people start ignoring the gate.
 | 0 | Foundation, CI, architecture tests, normative docs | done |
 | 1 | HTTP transport with SSRF and resource guards, `capture` | done |
 | 2 | The diff engine, `diff`, human and JSON output | done* |
-| 3 | Consumer contracts, `verify`, `init` | next |
+| 3 | Consumer contracts, `verify`, `init` | `verify` done, `init` next |
 | 4 | NativeAOT release matrix, SARIF, GitHub Action, npm shim | |
 | 5 | Dual protocol revisions, deprecation detection, `explain` | |
 

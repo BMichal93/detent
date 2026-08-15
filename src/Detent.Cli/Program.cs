@@ -12,9 +12,10 @@ internal static class Program
             VersionCommand.Create(),
             CaptureCommand.Create(),
             DiffCommand.Create(),
+            VerifyCommand.Create(),
 
-            // verify and init (phase 3), and explain (phase 5) are registered
-            // here as they land.
+            // init (phase 3) and explain (phase 5) are registered here as
+            // they land.
         };
 
         try

@@ -3,6 +3,7 @@ using Detent.Core.Capture;
 
 namespace Detent.Cli.Tests;
 
+[Collection(nameof(ConsoleTests))]
 public sealed class DiffCommandTests : IDisposable
 {
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "detent-cli-tests-" + Guid.NewGuid());

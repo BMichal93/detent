@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Detent.Core.Capture;
+using Detent.Core.Contracts;
 using Detent.Core.Diff;
 using Detent.Core.Policy;
 using Detent.Core.Security;
@@ -9,14 +10,19 @@ using Detent.Transport;
 namespace Detent.Cli;
 
 /// <summary>
-/// <c>detent diff</c>: compares a baseline snapshot against a target and gates
-/// on the result.
+/// <c>detent verify</c>: diffs a baseline against a target, then narrows and
+/// checks the result against a consumer's contract before gating.
 /// </summary>
 /// <remarks>
-/// MCPC402 is not evaluated; see the remarks on <see cref="DiffEngine"/> and
-/// ADR-0008. Every other row in <c>docs/arch/diff-rules.md</c> is.
+/// The pipeline is <c>diff</c>'s, with three contract-specific stages layered
+/// on in the order <c>docs/arch/diff-rules.md</c> §8 and §12 specify: narrow
+/// and promote via <see cref="ContractScope.Apply"/>, add whatever
+/// <see cref="ContractScope.CheckAssumptions"/> finds directly against the
+/// candidate, then drop what an active <see cref="ContractScope.ApplySuppressions"/>
+/// entry covers. Policy evaluation happens last, against whichever policy the
+/// contract and the CLI flags resolve to.
 /// </remarks>
-internal static class DiffCommand
+internal static class VerifyCommand
 {
     public static Command Create()
     {
@@ -30,6 +36,12 @@ internal static class DiffCommand
             Description = "URL of a live MCP endpoint, or a path to another snapshot, to compare to.",
         };
 
+        var contract = new Option<string>("--contract")
+        {
+            Description = "Path to the contract YAML file to verify against.",
+            Required = true,
+        };
+
         var format = new Option<string>("--format")
         {
             Description = "Output format: human or json.",
@@ -38,13 +50,13 @@ internal static class DiffCommand
 
         var failOn = new Option<string[]>("--fail-on")
         {
-            Description = "Severities that fail the build. Repeatable. Defaults to breaking,security.",
+            Description = "Severities that fail the build. Repeatable. Overrides the contract's own policy.",
             AllowMultipleArgumentsPerToken = true,
         };
 
         var warnOn = new Option<string[]>("--warn-on")
         {
-            Description = "Severities that warn without failing. Repeatable. Defaults to behavioural,notice,unanalysable.",
+            Description = "Severities that warn without failing. Repeatable. Overrides the contract's own policy.",
             AllowMultipleArgumentsPerToken = true,
         };
 
@@ -59,10 +71,11 @@ internal static class DiffCommand
             Description = "Skip certificate validation. Loopback targets only, never in CI.",
         };
 
-        var command = new Command("diff", "Compare a baseline snapshot against a target and gate on the result.")
+        var command = new Command("verify", "Verify a target against a consumer contract and gate on the result.")
         {
             baseline,
             target,
+            contract,
             format,
             failOn,
             warnOn,
@@ -73,6 +86,7 @@ internal static class DiffCommand
         command.SetAction((parseResult, cancellationToken) => ExecuteAsync(
             parseResult.GetValue(baseline)!,
             parseResult.GetValue(target)!,
+            parseResult.GetValue(contract)!,
             parseResult.GetValue(format)!,
             parseResult.GetValue(failOn) ?? [],
             parseResult.GetValue(warnOn) ?? [],
@@ -86,6 +100,7 @@ internal static class DiffCommand
     private static async Task<int> ExecuteAsync(
         string baselinePath,
         string target,
+        string contractPath,
         string format,
         string[] failOnNames,
         string[] warnOnNames,
@@ -98,11 +113,29 @@ internal static class DiffCommand
             return CliOutput.Fail(ExitCode.UsageError, $"Unknown --format '{Sanitizer.SanitizeForMessage(format)}'. Use human or json.");
         }
 
+        Contract contract;
+
+        try
+        {
+            var text = await File.ReadAllTextAsync(Path.GetFullPath(contractPath), cancellationToken).ConfigureAwait(false);
+            contract = ContractYamlReader.Read(text);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ContractFormatException)
+        {
+            return CliOutput.Fail(ExitCode.UsageError, $"Cannot read contract {Sanitizer.SanitizeForMessage(contractPath)}: {ex.Message}");
+        }
+
         GatePolicy policy;
 
         try
         {
-            policy = PolicyOptions.Resolve(failOnNames, warnOnNames, GatePolicy.Default);
+            var contractDefault = new GatePolicy
+            {
+                FailOn = contract.Policy?.FailOn ?? GatePolicy.Default.FailOn,
+                WarnOn = contract.Policy?.WarnOn ?? GatePolicy.Default.WarnOn,
+            };
+
+            policy = PolicyOptions.Resolve(failOnNames, warnOnNames, contractDefault);
         }
         catch (FormatException ex)
         {
@@ -127,8 +160,6 @@ internal static class DiffCommand
         }
         catch (TransportException ex)
         {
-            // Distinct from a policy failure on purpose. A flaky network that
-            // reads as a broken contract teaches people to ignore the gate.
             return CliOutput.Fail(ExitCode.TransportFailure, ex.Message);
         }
         catch (OperationCanceledException)
@@ -140,8 +171,17 @@ internal static class DiffCommand
             return CliOutput.Fail(ExitCode.UsageError, $"Cannot read target {Sanitizer.SanitizeForMessage(target)}: {ex.Message}");
         }
 
-        var findings = DiffEngine.Diff(before, after);
-        var result = PolicyEvaluator.Evaluate(findings, policy);
+        var findings = new List<Finding>();
+        findings.AddRange(ContractScope.Apply(DiffEngine.Diff(before, after), contract));
+        findings.AddRange(ContractScope.CheckAssumptions(after, contract));
+
+        // The one place Detent.Cli reads the clock on Detent.Core's behalf:
+        // Detent.Core takes no clock of its own, so "today" is decided here
+        // and passed in, never read inside the pure suppression logic itself.
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var suppressed = ContractScope.ApplySuppressions(findings, contract.Policy, today);
+
+        var result = PolicyEvaluator.Evaluate(suppressed, policy);
 
         Console.Out.Write(format == "json" ? JsonRenderer.Render(result) : HumanRenderer.Render(result));
 

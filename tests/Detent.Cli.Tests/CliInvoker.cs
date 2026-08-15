@@ -12,10 +12,13 @@ namespace Detent.Cli.Tests;
 /// <c>InternalsVisibleTo</c> entirely. Running in-process rather than spawning
 /// a real <c>detent.exe</c> subprocess per test avoids depending on a prior
 /// build step and working-directory assumptions, at the cost of redirecting
-/// <see cref="Console"/>, which is process-wide mutable state. Safe here only
-/// because test methods within one xUnit class run sequentially by default;
-/// a second Console-touching test class in this project would need a
-/// collection attribute to keep that true.
+/// <see cref="Console"/>, which is process-wide mutable state. Every test
+/// class that calls this must carry
+/// <c>[Collection(nameof(ConsoleTests))]</c> - xUnit parallelises
+/// different test classes by default, and two of them redirecting Console
+/// concurrently corrupts each other's captured output. Found exactly that
+/// way: the full suite failed while each class passed in isolation, the
+/// moment a second Console-touching class was added.
 /// </remarks>
 internal static class CliInvoker
 {

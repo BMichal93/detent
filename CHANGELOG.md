@@ -242,6 +242,52 @@ are Phase 3.
 367 tests total. `Detent.Core` still has zero package dependencies and no
 clock access, confirmed by the architecture tests rather than assumed.
 
+### `detent verify` ships
+
+- `detent verify <baseline> <target> --contract <path> [--format human|json]
+  [--fail-on ...] [--warn-on ...]`. Pipeline: diff, then
+  `ContractScope.Apply` (narrow and promote), then
+  `ContractScope.CheckAssumptions` (add MCPC501 findings), then
+  `ContractScope.ApplySuppressions` (drop what an active `ignore` covers),
+  then policy evaluation. `--fail-on`/`--warn-on` override the contract's own
+  `policy:` block when given; otherwise the contract's policy applies,
+  falling back to `GatePolicy.Default` field by field.
+- `DateOnly.FromDateTime(DateTime.Now)` is computed in `VerifyCommand` and
+  passed into `ApplySuppressions` as `today` - the one place in the whole CLI
+  that reads the clock on `Detent.Core`'s behalf, exactly at the I/O boundary
+  the architecture rule expects.
+- `--fail-on`/`--warn-on` parsing and target/baseline resolution extracted
+  from `DiffCommand` into shared `PolicyOptions`/`SnapshotResolution` helpers,
+  used by both commands rather than duplicated.
+- 27 CLI tests (13 normal, 14 edge), each pipeline stage verified
+  adversarially rather than trusted: bypassing `ContractScope.Apply` failed
+  exactly the 7 tests that depend on scoping; bypassing
+  `CheckAssumptions` failed exactly the 3 that depend on it. Covers the
+  plan's exit criterion directly, undeclared tools being dropped entirely,
+  `exhaustiveEnums` promotion (and its precedence under `reads` - promotion
+  never runs for a field the contract does not read at all), suppressions
+  including the security-is-never-suppressed rule, and an assumption
+  violated with no underlying change firing on a first-ever run.
+- Caught a real concurrency bug while adding the second CLI test class:
+  `CliInvoker` redirects `Console.Out`/`Console.Error`, which is process-wide
+  mutable state, and xUnit parallelises different test classes by default.
+  `DiffCommandTests` and `VerifyCommandTests` running concurrently corrupted
+  each other's captured output - the full suite failed while each class
+  passed alone. `CliInvoker`'s own remarks had predicted this would happen
+  the moment a second Console-touching class existed; fixed with a shared
+  `[Collection(nameof(ConsoleTests))]` forcing them sequential. Reproduced
+  five consecutive full-suite runs afterward to confirm the fix, not just one.
+- Verified end to end against a live server with every scoping rule exercised
+  in one run: an unsent input property removed, a read output property
+  removed, an entirely undeclared tool removed, and an assumed annotation
+  flipped. The unscoped `diff` reported four findings, two of them noise
+  (the unsent property, the undeclared tool). `verify` dropped exactly those
+  two, kept the two real ones, and added the MCPC501 finding no diff could
+  produce - the actual "does the server I depend on still satisfy what I use"
+  question this phase exists to answer, working.
+
+394 tests total, all green, CI passing on NativeAOT for all three platforms.
+
 ### Investigated
 
 - Whether Stryker.NET's mutation-testing gate (Phase 2's other exit criterion,
