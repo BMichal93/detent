@@ -58,6 +58,19 @@ the assumption is still caught on the first run. See
 rules, and ADR-0009 for why contract files are YAML parsed by a small
 hand-rolled reader rather than a library.
 
+`detent init` scaffolds a starting contract by observing a server - every
+tool it advertises, every top-level input and output property, deliberately
+over-inclusive so nothing you actually depend on is missed by default:
+
+```bash
+detent init https://mcp.example.com/mcp --consumer brand-site-agent -o contract.yaml
+```
+
+Narrow `sends`/`reads` to what your code actually uses before committing -
+the generated file's own trailing comments say so. `exhaustiveEnums` and
+`assumes` are never guessed; both require knowing what your code does, which
+nothing about the server can tell you.
+
 Two modes:
 
 1. **Snapshot** - did my own server's contract change since last commit? A
@@ -108,7 +121,7 @@ a broken contract, or people start ignoring the gate.
 | 0 | Foundation, CI, architecture tests, normative docs | done |
 | 1 | HTTP transport with SSRF and resource guards, `capture` | done |
 | 2 | The diff engine, `diff`, human and JSON output | done* |
-| 3 | Consumer contracts, `verify`, `init` | `verify` done, `init` next |
+| 3 | Consumer contracts, `verify`, `init` | done |
 | 4 | NativeAOT release matrix, SARIF, GitHub Action, npm shim | |
 | 5 | Dual protocol revisions, deprecation detection, `explain` | |
 

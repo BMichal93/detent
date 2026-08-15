@@ -105,22 +105,27 @@ screen, not legal clearance.
 
 ## Status
 
-Phases 0 and 1 complete. `detent capture <url> -o snapshot.json` works and
-produces byte-identical output across ten consecutive runs.
+Phases 0, 1, and 3 complete. Phase 2 (the diff engine) is functionally done -
+46 of 47 rows implemented, every one with a golden case - with one exit
+criterion still open.
 
-Phase 2 (the diff engine) is next to last, and it is the one that has to be
-perfect. Work the rule tables test-first: write the golden cases from
-`docs/arch/diff-rules.md` before the implementation, or the engine ends up
-shaped by whatever the code happened to do rather than by the rules anyone
-chose.
+`detent capture`, `detent diff`, `detent verify`, and `detent init` all work
+end to end, verified against live servers, not only in unit tests.
 
-46 of 47 rows are implemented. Only MCPC402 (auth scheme or scopes changed)
-remains, blocked on capture surface `Detent.Transport` does not have yet - see
-the remarks on `ServerRules` in `Detent.Core/Diff`.
+Only `MCPC402` (auth scheme or scopes changed) has no rule: it is blocked on
+capture surface `Detent.Transport` does not have yet, deliberately deferred
+rather than built under time pressure - see ADR-0008 and the remarks on
+`ServerRules` in `Detent.Core/Diff`.
 
-Phase 2 is done when every rule row has a passing golden case and the mutation
-score on `Detent.Core/Diff` is above 85%. **The mutation-testing half is
-currently blocked**, not skipped: Stryker.NET 4.16.0, the latest release,
+Phase 2's other exit criterion - mutation score on `Detent.Core/Diff` above
+85% - is **blocked, not skipped**: Stryker.NET 4.16.0, the latest release,
 cannot analyse a .NET 10 project at all (fails before generating a single
 mutant; see ADR-0007). Re-run it against a newer Stryker release before
 treating this criterion as satisfied.
+
+Next: Phase 4 (NativeAOT release matrix, SARIF, a GitHub Action, an npm shim)
+or Phase 5 (dual protocol revisions, deprecation detection, `explain`) - see
+the roadmap in `README.md`. Formal trademark clearance is still the first
+blocking gate in `docs/release-checklist.md` before any of that ships
+publicly; ADR-0005 (including its addendum) is an availability screen, not
+legal clearance.

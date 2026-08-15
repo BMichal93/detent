@@ -359,3 +359,40 @@ clock access, confirmed by the architecture tests rather than assumed.
   `Spectre.Console.Cli`. The latter fails AOT compilation (`IL3050`, reflection
   based command binding) and has no stable release; the former reached 2.0 GA.
   See ADR-0004.
+
+## Phase 3 complete: `detent init`
+
+- `ContractScaffolder.FromSnapshot`: builds the most permissive contract that
+  still says something - every tool in the snapshot, every top-level
+  input/output property in `sends`/`reads`. Schemas are run through
+  `SchemaNormaliser` first, so a tool built from `$ref`/`$defs` scaffolds its
+  real property names rather than nothing. Never guesses `exhaustiveEnums` or
+  `assumes` - both require knowing what the consumer's own code does.
+- `ContractYamlWriter`: renders a `Contract` back to the YAML
+  `ContractYamlReader` reads, with trailing comments telling the person
+  editing it what to narrow and how to add `assumes`/`exhaustiveEnums`/
+  `policy`. Both live in `Detent.Core.Contracts`, pure, no I/O.
+- `detent init <target> --consumer <name> [-o path]`. Target is a live URL or
+  an existing snapshot file, same auto-detection `diff`/`verify` already use.
+- Caught a real bug writing the round-trip test: an empty tools list rendered
+  as `tools:` followed by a nested `[] # comment` line, which the parser reads
+  as a malformed mapping entry rather than an inline empty sequence. Fixed by
+  writing `tools: []` inline on the same line when there is nothing to list -
+  found by testing the writer against the reader it has to agree with, not by
+  reading the writer's own code and assuming it was right.
+- 14 tests for the scaffolder and writer (including the round-trip and the
+  `$ref` case), 12 CLI tests for `init` verified adversarially - bypassing the
+  scaffolding call failed exactly the 4 tests that depend on tool count and
+  content.
+- Verified end to end against a live server, including the one path the
+  in-process test harness structurally cannot observe: `-o -` writes raw
+  bytes straight to the OS stdout handle (the same deliberate pattern
+  `CaptureCommand` already uses), which `CliInvoker`'s `Console.Out`
+  redirection never sees. Confirmed instead with the real published binary,
+  piped through `head`. Then closed the full loop: scaffolded a contract live,
+  hand-narrowed it the way the generated comments ask, and ran `verify`
+  against it - clean.
+
+Phase 3 is done: `detent capture`, `diff`, `verify`, and `init` all work
+end to end against real servers, not only in unit tests. 420 tests total, all
+green, stable across repeated runs. AOT publish clean at 7.71 MB.

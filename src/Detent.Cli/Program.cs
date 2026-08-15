@@ -13,9 +13,9 @@ internal static class Program
             CaptureCommand.Create(),
             DiffCommand.Create(),
             VerifyCommand.Create(),
+            InitCommand.Create(),
 
-            // init (phase 3) and explain (phase 5) are registered here as
-            // they land.
+            // explain (phase 5) is registered here as it lands.
         };
 
         try
