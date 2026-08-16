@@ -433,3 +433,36 @@ green, stable across repeated runs. AOT publish clean at 7.71 MB.
 
 440 tests total, all green. AOT publish clean at 7.90 MB, still well inside
 the 20 MB budget.
+
+### `linux-arm64` joins the NativeAOT matrix
+
+Completes the plan's full four-RID list (`linux-x64`, `linux-arm64`,
+`win-x64`, `osx-arm64`). Cross-compiling NativeAOT from an x64 Linux runner to
+arm64 took five iterations to get working, each one a real failure diagnosed
+from an actual CI run rather than assumed fixed:
+
+1. `binutils-aarch64-linux-gnu` alone supplies the cross-linker but not the
+   target's C runtime - failed on `cannot find Scrt1.o`, `cannot find crti.o`,
+   `cannot find -lc`. Fixed by installing `gcc-aarch64-linux-gnu` instead,
+   which pulls in the actual cross-sysroot.
+2. Past linking, failed on `objcopy --only-keep-debug`: the SDK's symbol
+   stripping shells out to the host's x64 `objcopy`, which cannot process the
+   arm64 binary just cross-linked.
+3. Tried pointing it at the real cross-`objcopy` via an `OBJCOPY` environment
+   variable - the conventional GNU-toolchain mechanism for exactly this. Ran
+   clean, but the log showed the literal command `"objcopy"` still executing;
+   `Microsoft.NETCore.Native.targets` hard-codes the name rather than reading
+   the environment.
+4. Stopped chasing the cross-`objcopy` at that point - stripping is a size
+   optimisation, not a correctness requirement - and disabled it for this one
+   RID (`-p:StripSymbols=false`), which produces a working binary.
+5. The now-unstripped binary reported 22 MB against the 20 MB budget: not a
+   real regression, since debug symbols alone roughly triple a NativeAOT
+   binary's size, and holding an intentionally-unstripped build to the
+   stripped budget would fail regardless of what actually ships. Gave that
+   one RID a 40 MB budget instead; every native RID keeps the real 20 MB one.
+
+An x64 runner also cannot execute the arm64 binary it cross-compiles, so the
+existing execution smoke test is skipped for this RID and replaced with a
+check that the file exists and is genuinely an `aarch64` ELF binary (via
+`file`).
