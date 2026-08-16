@@ -71,12 +71,17 @@ jobs:
           global-json-file: global.json
 
       # NativeAOT cross-compiling to arm64 from an x64 Linux host needs the
-      # target's binutils for the final link step; the SDK does not carry it.
+      # target's C runtime for the final link step, not merely its linker.
+      # binutils-aarch64-linux-gnu alone supplies the cross-linker but not
+      # Scrt1.o/crti.o/libc, confirmed by a failed run that got exactly that
+      # far before erroring on missing object files - gcc-aarch64-linux-gnu
+      # pulls in the actual cross-sysroot (via libc6-dev-arm64-cross) that was
+      # missing.
       - name: Install arm64 cross-compilation toolchain
         if: matrix.cross
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang llvm binutils-aarch64-linux-gnu
+          sudo apt-get install -y clang gcc-aarch64-linux-gnu
 
       - name: Publish
         run: >
