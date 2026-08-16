@@ -83,12 +83,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang gcc-aarch64-linux-gnu
 
+      # StripSymbols=false only for the cross RID: the SDK's post-link symbol
+      # stripping shells out to the host's objcopy, which cannot process a
+      # foreign-arch (arm64) binary on this x64 runner, confirmed by a failed
+      # run whose link step succeeded and then failed specifically on
+      # `objcopy --only-keep-debug`. Stripping is a size optimisation, not a
+      # correctness requirement, and there is ample headroom under the 20 MB
+      # budget without it.
       - name: Publish
         run: >
           dotnet publish src/Detent.Cli/Detent.Cli.csproj
           --configuration Release
           --runtime ${{ matrix.rid }}
           --output out
+          ${{ matrix.cross && '-p:StripSymbols=false' || '' }}
 
       # The binary having been produced is not the same as the binary working.
       # AOT breakage shows up at runtime, not at publish time - but a
