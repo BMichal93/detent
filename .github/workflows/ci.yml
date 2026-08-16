@@ -51,10 +51,16 @@ jobs:
         include:
           - os: ubuntu-latest
             rid: linux-x64
+            cross: false
+          - os: ubuntu-latest
+            rid: linux-arm64
+            cross: true
           - os: windows-latest
             rid: win-x64
+            cross: false
           - os: macos-latest
             rid: osx-arm64
+            cross: false
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -64,6 +70,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      # NativeAOT cross-compiling to arm64 from an x64 Linux host needs the
+      # target's binutils for the final link step; the SDK does not carry it.
+      - name: Install arm64 cross-compilation toolchain
+        if: matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm binutils-aarch64-linux-gnu
+
       - name: Publish
         run: >
           dotnet publish src/Detent.Cli/Detent.Cli.csproj
@@ -72,14 +86,24 @@ jobs:
           --output out
 
       # The binary having been produced is not the same as the binary working.
-      # AOT breakage shows up at runtime, not at publish time.
+      # AOT breakage shows up at runtime, not at publish time - but a
+      # cross-compiled binary cannot run on the host that built it, so only
+      # the native RIDs get an execution smoke test.
       - name: Smoke test
+        if: '!matrix.cross'
         shell: bash
         run: |
           BIN=out/detent
           [ -f "$BIN.exe" ] && BIN="$BIN.exe"
           "$BIN" version
           "$BIN" --help
+
+      - name: Verify cross-compiled binary exists
+        if: matrix.cross
+        shell: bash
+        run: |
+          test -f out/detent
+          file out/detent | grep -qi aarch64
 
       # Budget from docs/adr/0002-tech-stack.md. Enforced rather than hoped for.
       - name: Check binary size budget
