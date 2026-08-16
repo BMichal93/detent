@@ -4,7 +4,6 @@ using Detent.Core.Contracts;
 using Detent.Core.Diff;
 using Detent.Core.Policy;
 using Detent.Core.Security;
-using Detent.Formats;
 using Detent.Transport;
 
 namespace Detent.Cli;
@@ -44,7 +43,7 @@ internal static class VerifyCommand
 
         var format = new Option<string>("--format")
         {
-            Description = "Output format: human or json.",
+            Description = "Output format: human, json, sarif, or markdown.",
             DefaultValueFactory = _ => "human",
         };
 
@@ -108,9 +107,9 @@ internal static class VerifyCommand
         bool insecure,
         CancellationToken cancellationToken)
     {
-        if (format is not ("human" or "json"))
+        if (!OutputFormat.IsKnown(format))
         {
-            return CliOutput.Fail(ExitCode.UsageError, $"Unknown --format '{Sanitizer.SanitizeForMessage(format)}'. Use human or json.");
+            return CliOutput.Fail(ExitCode.UsageError, $"Unknown --format '{Sanitizer.SanitizeForMessage(format)}'. Use {OutputFormat.Known}.");
         }
 
         Contract contract;
@@ -183,7 +182,7 @@ internal static class VerifyCommand
 
         var result = PolicyEvaluator.Evaluate(suppressed, policy);
 
-        Console.Out.Write(format == "json" ? JsonRenderer.Render(result) : HumanRenderer.Render(result));
+        Console.Out.Write(OutputFormat.Render(format, result));
 
         return (int)result.ExitCode;
     }

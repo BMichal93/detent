@@ -1,9 +1,33 @@
+using System.Reflection;
 using Detent.Core.Capture;
 using Detent.Core.Policy;
 using Detent.Core.Security;
+using Detent.Formats;
 using Detent.Transport;
 
 namespace Detent.Cli;
+
+/// <summary>The build's own version, for <c>version</c> and the SARIF driver.</summary>
+internal static class ToolVersion
+{
+    public static string Current { get; } = GetInformationalVersion();
+
+    private static string GetInformationalVersion()
+    {
+        var attribute = typeof(ToolVersion).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>();
+
+        if (attribute is null)
+        {
+            return "unknown";
+        }
+
+        // The SDK appends "+<commit sha>" to the informational version. Useful in
+        // a bug report, noise on a version line, so split it off.
+        var version = attribute.InformationalVersion;
+        var plus = version.IndexOf('+', StringComparison.Ordinal);
+        return plus < 0 ? version : version[..plus];
+    }
+}
 
 /// <summary>
 /// The parts of resolving a diff or verify run that <c>detent diff</c> and
@@ -107,4 +131,24 @@ internal static class CliOutput
         Console.Error.WriteLine($"detent: {Sanitizer.SanitizeForMessage(message, 500)}");
         return (int)code;
     }
+}
+
+/// <summary>Renders a <see cref="GateResult"/> in whichever of the four
+/// supported formats <c>--format</c> named, shared by every command that
+/// gates on a diff.</summary>
+internal static class OutputFormat
+{
+    private static readonly string[] _known = ["human", "json", "sarif", "markdown"];
+
+    public static bool IsKnown(string format) => _known.Contains(format, StringComparer.Ordinal);
+
+    public static string Known => string.Join(", ", _known);
+
+    public static string Render(string format, GateResult result) => format switch
+    {
+        "json" => JsonRenderer.Render(result),
+        "sarif" => SarifRenderer.Render(result, ToolVersion.Current),
+        "markdown" => MarkdownRenderer.Render(result),
+        _ => HumanRenderer.Render(result),
+    };
 }

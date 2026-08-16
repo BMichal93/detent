@@ -140,6 +140,31 @@ public sealed class DiffCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task Sarif_format_dispatches_to_the_sarif_renderer()
+    {
+        var baseline = WriteSnapshot("before.json", Snap(Tool("search"), Tool("legacy_export")));
+        var target = WriteSnapshot("after.json", Snap(Tool("search")));
+
+        var result = await CliInvoker.RunAsync(DiffCommand.Create(), baseline, target, "--format", "sarif");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("sarif-schema-2.1.0.json", result.StdOut, StringComparison.Ordinal);
+        Assert.Contains("MCPC301", result.StdOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Markdown_format_dispatches_to_the_markdown_renderer()
+    {
+        var baseline = WriteSnapshot("before.json", Snap(Tool("search"), Tool("legacy_export")));
+        var target = WriteSnapshot("after.json", Snap(Tool("search")));
+
+        var result = await CliInvoker.RunAsync(DiffCommand.Create(), baseline, target, "--format", "markdown");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("### Failures", result.StdOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Unknown_format_is_a_usage_error()
     {
         var baseline = WriteSnapshot("before.json", Snap(Tool("search")));

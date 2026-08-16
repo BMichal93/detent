@@ -396,3 +396,40 @@ clock access, confirmed by the architecture tests rather than assumed.
 Phase 3 is done: `detent capture`, `diff`, `verify`, and `init` all work
 end to end against real servers, not only in unit tests. 420 tests total, all
 green, stable across repeated runs. AOT publish clean at 7.71 MB.
+
+## Phase 4 (in progress): SARIF and Markdown output
+
+- `SarifRenderer`: SARIF 2.1.0. The plan calls this the best effort-to-reach
+  ratio in the whole project - native rendering in GitHub code scanning and
+  Azure DevOps for about half a day of work. Findings have no file or line
+  behind them - `tools/search_products/inputSchema/properties/query` is a
+  position in a server's advertised surface, not a source file - so every
+  result carries a `logicalLocation` rather than a `physicalLocation`, which
+  is what SARIF's logical-location concept is for. The rule catalog lists
+  only IDs that actually occur in a given run, not the full ~47-row table,
+  so it can never drift out of sync with `docs/arch/diff-rules.md` by
+  duplicating it.
+- `MarkdownRenderer`: GitHub-flavoured tables, meant for a PR comment or a CI
+  job summary. Every cell goes through the same `Sanitizer.Sanitize` the
+  human renderer uses, then through Markdown-specific escaping on top -
+  `|` would otherwise terminate a table cell early, and an unescaped
+  backtick in a path would break out of the fence the path is wrapped in and
+  let a server-controlled tool name corrupt the table structure itself, not
+  merely render oddly inside its own cell. Verified adversarially: removing
+  the escaping failed exactly the 3 tests that depend on it, after first
+  catching that my own adversarial edit had silently no-op'd (a Python
+  heredoc escaping mismatch left the file unchanged) by checking the file
+  actually differed before trusting a suspiciously all-green run.
+- `--format` on `diff` and `verify` now accepts `sarif` and `markdown`
+  alongside `human`/`json`, dispatched through a shared `OutputFormat` helper
+  in `Detent.Cli` rather than duplicated per command.
+- `ToolVersion` extracted from `VersionCommand` into a shared helper, since
+  the SARIF driver needs the same informational-version lookup `version`
+  already had.
+- 26 renderer tests plus 2 CLI dispatch smoke tests. Verified against a live
+  server for both new formats: an unchanged server produces a structurally
+  valid, empty SARIF run; a removed tool produces a correctly-leveled
+  (`error`) SARIF result and a correctly-escaped Markdown table row.
+
+440 tests total, all green. AOT publish clean at 7.90 MB, still well inside
+the 20 MB budget.

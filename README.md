@@ -40,8 +40,10 @@ detent diff .detent/snapshot.json https://mcp.example.com/mcp          # gate on
 
 `diff`'s target is either a live URL or another snapshot file, so the same
 command compares two committed snapshots or a baseline against production.
-`--format human` (default) or `--format json`; `--fail-on`/`--warn-on` override
-the default policy (`fail_on: breaking,security`).
+`--format human` (default), `json`, `sarif`, or `markdown`; `--fail-on`/`--warn-on`
+override the default policy (`fail_on: breaking,security`). `verify` takes the
+same four formats. SARIF renders natively in GitHub code scanning and Azure
+DevOps; markdown is meant for a PR comment or a CI job summary.
 
 `detent verify` is `diff` scoped to what a specific consumer actually uses:
 
@@ -122,7 +124,7 @@ a broken contract, or people start ignoring the gate.
 | 1 | HTTP transport with SSRF and resource guards, `capture` | done |
 | 2 | The diff engine, `diff`, human and JSON output | done* |
 | 3 | Consumer contracts, `verify`, `init` | done |
-| 4 | NativeAOT release matrix, SARIF, GitHub Action, npm shim | |
+| 4 | NativeAOT release matrix, SARIF, GitHub Action, npm shim | SARIF/markdown done, rest next |
 | 5 | Dual protocol revisions, deprecation detection, `explain` | |
 
 \* Except MCPC402 (auth scheme or scopes changed), deferred by
