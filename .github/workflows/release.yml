@@ -1,0 +1,191 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+# Least privilege at the workflow level; the release job raises what it
+# specifically needs (contents: write to publish, id-token: write for
+# cosign's keyless signing).
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.rid }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            cross: false
+          - os: ubuntu-latest
+            rid: linux-arm64
+            cross: true
+          - os: windows-latest
+            rid: win-x64
+            cross: false
+          - os: macos-latest
+            rid: osx-arm64
+            cross: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      # See docs/arch/../../.github/workflows/ci.yml for why: gcc-aarch64-linux-gnu
+      # supplies the cross-sysroot the linker needs, and stripping is disabled
+      # for this RID because the SDK's post-link step hard-codes the host's
+      # own objcopy rather than a cross one.
+      - name: Install arm64 cross-compilation toolchain
+        if: matrix.cross
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang gcc-aarch64-linux-gnu
+
+      - name: Publish
+        run: >
+          dotnet publish src/Detent.Cli/Detent.Cli.csproj
+          --configuration Release
+          --runtime ${{ matrix.rid }}
+          --output out
+          ${{ matrix.cross && '-p:StripSymbols=false' || '' }}
+
+      # Packaged as an archive rather than a bare binary: tar.gz preserves the
+      # executable bit on the RIDs that need one, which a raw file download
+      # would not, and both forms are what people expect from a CLI release.
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist
+          cd out
+
+          if [ -f detent.exe ]; then
+            7z a "../dist/detent-${{ matrix.rid }}.zip" detent.exe ../LICENSE >/dev/null
+          else
+            chmod +x detent
+            tar -czf "../dist/detent-${{ matrix.rid }}.tar.gz" detent -C .. LICENSE
+          fi
+
+      - name: Upload artefact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: dist-${{ matrix.rid }}
+          path: dist/*
+          if-no-files-found: error
+
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore src/Detent.Cli/Detent.Cli.csproj
+
+      # A dotnet global tool, not a package reference - it shapes nothing
+      # about the shipped binary and needs no ADR, the same footing
+      # dotnet-stryker already stands on for testing. See docs/adr/0002.
+      - name: Install CycloneDX
+        run: dotnet tool install --global CycloneDX
+
+      # Scoped to the shipped project, not the whole solution: an SBOM
+      # documents what is actually in the release artefact, not what the test
+      # and build tooling happens to pull in.
+      - name: Generate SBOM
+        run: dotnet-CycloneDX src/Detent.Cli/Detent.Cli.csproj --json --output sbom
+
+      - name: Upload artefact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: sbom
+          path: sbom/bom.json
+          if-no-files-found: error
+
+  release:
+    name: Sign and publish
+    needs: [build, sbom]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download all artefacts
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          path: artefacts
+
+      - name: Assemble release assets
+        run: |
+          mkdir -p release
+          find artefacts -type f \( -name '*.zip' -o -name '*.tar.gz' \) -exec cp {} release/ \;
+          cp artefacts/sbom/bom.json release/detent.cdx.json
+
+          cd release
+          sha256sum * > checksums.txt
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      # Keyless signing: cosign uses the run's own GitHub OIDC token as the
+      # signer identity (permissions.id-token above), verified later against
+      # that identity rather than a private key this repository would have to
+      # hold and protect. No secret exists to leak.
+      - name: Sign release assets
+        run: |
+          cd release
+          for f in *; do
+            [ "$f" = "checksums.txt" ] && continue
+            cosign sign-blob --yes --output-signature "$f.sig" --output-certificate "$f.pem" "$f"
+          done
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "draft_label=" >> "$GITHUB_OUTPUT"
+          else
+            # A manual test run, not a real release: a synthetic version that
+            # can never collide with a real tag, so it is unmistakable in the
+            # release list.
+            echo "version=0.0.0-dev.${{ github.run_number }}+$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            echo "draft_label= (manual test run)" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Always a draft, regardless of trigger. Formal trademark clearance
+      # (docs/release-checklist.md) has not happened yet, and a tag push
+      # alone should not be the single action that makes a release public -
+      # publishing is a second, explicit, human click in GitHub's UI. Revisit
+      # once that gate has actually cleared.
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --draft \
+            --title "detent v${{ steps.version.outputs.version }}${{ steps.version.outputs.draft_label }}" \
+            --notes "Verify with: cosign verify-blob --certificate-identity-regexp 'https://github.com/${{ github.repository }}/.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com --signature <asset>.sig --certificate <asset>.pem <asset>" \
+            release/*
