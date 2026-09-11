@@ -8,7 +8,7 @@
        Dependency count is a security property of this project, not an
        implementation detail. See CLAUDE.md. -->
   <ItemGroup Label="Runtime - see docs/adr/0002-tech-stack.md">
-    <PackageVersion Include="System.CommandLine" Version="2.0.11" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.12" />
   </ItemGroup>
 
   <ItemGroup Label="Test - see docs/adr/0002-tech-stack.md">
